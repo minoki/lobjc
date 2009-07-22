@@ -184,6 +184,73 @@ int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
   return luaL_error(L, "ffi_prep_cif failed");
 }
 
+int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
+                                 NSMethodSignature *sig, int firstarg,
+                                 bool already_retained) {
+  size_t nout = 0;
+  size_t argc = [sig numberOfArguments];
+  lua_settop(L, firstarg+argc-1); // 引数が足りなかった場合のエラーメッセージがちょっと変わるけど気にしない
+
+  NSInvocation *inv = [NSInvocation invocationWithMethodSignature: sig];
+  [inv setSelector: sel]; // _cmd
+  [inv setTarget: obj]; // self
+
+  struct OutParam outparams[argc];
+  {
+    struct OutParam *outparam = outparams;
+    int narg = firstarg+2;
+    for (size_t i = 2; i < argc; ++i) {
+      const char *e = [sig getArgumentTypeAtIndex: i];
+      const char *f = e;
+      unsigned char q = get_qualifier(e);
+      e = skip_qualifier(e);
+      void *buffer = lua_newuserdata(L, lobjc_conv_sizeof(L, e));
+      if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *e == '^') {
+        ++nout;
+        void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, e+1));
+        *outparam++ = (struct OutParam){.type = e+1, .p = p};
+        *(void **)buffer = p;
+        if (q & QUALIFIER_INOUT) {
+          lobjc_conv_luatoobjc1(L, narg++, e+1, p);
+        }
+      } else {
+        lobjc_conv_luatoobjc1(L, narg++, f, buffer);
+      }
+      [inv setArgument: buffer atIndex: i];
+    }
+  }
+  {
+    id savedException = nil;
+    @try {
+      [obj forwardInvocation: inv];
+    }
+    @catch (id e) {
+      savedException = e;
+    }
+    if (savedException) {
+      return lobjc_exception_rethrow_as_lua(L, savedException);
+    }
+  }
+  {
+    const char *e = [sig methodReturnType];
+    int retc = nout; // number of results
+    if (*e != 'v') {
+      ++retc;
+      void *ret_buffer = lua_newuserdata(L, lobjc_conv_sizeof(L, e));
+      [inv getReturnValue: ret_buffer];
+      if (already_retained) {
+        lobjc_conv_objctolua1_noretain(L, e, ret_buffer);
+      } else {
+        lobjc_conv_objctolua1(L, e, ret_buffer);
+      }
+    }
+    for (size_t i = 0; i < nout; ++i) {
+      lobjc_conv_objctolua1(L, outparams[i].type, outparams[i].p);
+    }
+    return retc;
+  }
+}
+
 /*
 TODO:
 support array, union, bit-field

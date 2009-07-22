@@ -327,7 +327,13 @@ static int lobjc_invoke (lua_State *L) { /** invoke(obj,sel,...) */
     || sel == @selector(mutableCopy)
     || sel == @selector(mutableCopyWithZone:);
   Method method = class_getInstanceMethod(class, sel);
-  if (!method) { // TODO: try forwardInvocation
+  if (!method) {
+    if ([obj respondsToSelector: sel]) {
+      NSMethodSignature *sig = [obj methodSignatureForSelector: sel];
+      if (sig) {
+        return lobjc_invoke_with_signature(L, obj, sel, sig, 1, already_retained);
+      }
+    }
     return 0;
   }
   IMP impl = method_getImplementation(method);
