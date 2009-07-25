@@ -397,6 +397,15 @@ static int lobjc_registerinformalprotocol (lua_State *L) { /** registerinformalp
   return 1;
 }
 
+static int lobjc_registermethod (lua_State *L) { /** registermethod(obj,name,type) */
+  id obj = lobjc_toid(L, 1);
+  SEL sel = lobjc_checkselector(L, 2);
+  const char *type = luaL_checkstring(L, 3);
+  if ([obj respondsToSelector:@selector(lobjc_addMethod:type:)]) {
+    [obj lobjc_addMethod:sel type:type];
+  }
+  return 0;
+}
 
 
 
@@ -450,6 +459,7 @@ static const luaL_Reg funcs[] = {
   {"gettypeencoding_x", lobjc_gettypeencoding_x},
   {"overridesignature", lobjc_overridesignature},
   {"registerinformalprotocol", lobjc_registerinformalprotocol},
+  {"registermethod", lobjc_registermethod},
 
   {"NSData_to_string", lobjc_NSData_to_string},
   {"string_to_NSData", lobjc_string_to_NSData},
