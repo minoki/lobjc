@@ -11,6 +11,7 @@
 #include <objc/objc.h>
 
 @class NSMethodSignature;
+@class NSInvocation;
 
 int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
                        unsigned int argc, int firstarg,
@@ -18,5 +19,7 @@ int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
 int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
                                  NSMethodSignature *sig, int firstarg,
                                  bool already_retained);
+
+void lobjc_invoke_lua_with_NSInvocation (lua_State *L, int ref, NSInvocation *inv);
 
 #endif

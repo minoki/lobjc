@@ -62,6 +62,10 @@ LUALIB_API void lobjc_pushid_noretain (lua_State *L, id obj) {
   pushid_impl(L, obj, false, true);
 }
 
+LUALIB_API void lobjc_rawpushid (lua_State *L, id obj) {
+  pushid_impl(L, obj, true, false);
+}
+
 
 // TODO: make it possible to distinguish automatically-converted objects
 //       from other objects

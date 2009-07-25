@@ -13,6 +13,7 @@
 
 LUALIB_API void lobjc_pushid (lua_State *L, id obj);
 LUALIB_API void lobjc_pushid_noretain (lua_State *L, id obj);
+LUALIB_API void lobjc_rawpushid (lua_State *L, id obj);
 LUALIB_API id lobjc_toid (lua_State *L, int idx);
 LUALIB_API id lobjc_rawtoid (lua_State *L, int idx);
 

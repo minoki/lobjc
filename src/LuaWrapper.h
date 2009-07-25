@@ -10,12 +10,12 @@
 
 #include <lua.h>
 #include <stdbool.h>
-#include <Foundation/NSObject.h>
-#include <Foundation/NSValue.h>
+#include <Foundation/Foundation.h>
 
 @interface LuaWrapper : NSObject {
   lua_State *L_state;
   int ref;
+  NSMutableDictionary *methods;
 }
 
 // initialize with the value at the top of the stack
@@ -23,6 +23,8 @@
 
 // pushes onto the stack
 - (bool)lobjc_pushLuaValue:(lua_State *)L;
+
+- (void)lobjc_addMethod:(SEL)sel type:(const char *)type;
 
 @end
 

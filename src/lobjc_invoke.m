@@ -259,3 +259,80 @@ support pointers
 
 
 
+struct InvokeLuaParams {
+  NSInvocation *inv;
+  int ref;
+};
+
+static int invoke_lua_with_NSInvocation_aux (lua_State *L) {
+  struct InvokeLuaParams *p = (struct InvokeLuaParams *)lua_touserdata(L, 1);
+  NSInvocation *inv = p->inv;
+  SEL sel = [inv selector];
+  NSMethodSignature *sig = [inv methodSignature];
+  bool has_some_result = *skip_qualifier([sig methodReturnType]) != 'v';
+
+  lua_rawgeti(L, LUA_REGISTRYINDEX, p->ref);
+  luaL_gsub(L, sel_getName(sel), ":", "_");
+  lua_gettable(L, -2); // the function
+
+  int result_pos = lua_gettop(L);
+
+  lua_pushvalue(L, -2); // self
+
+  int realargc = 0;
+  size_t nout = 0;
+  size_t argc = [sig numberOfArguments];
+  struct OutParam outparams[argc];
+  {
+    struct OutParam *poutparams = outparams;
+    for (size_t i = 2; i < argc; ++i) {
+      const char *e = [sig getArgumentTypeAtIndex:i];
+      unsigned char q = get_qualifier(e);
+      const char *s = skip_qualifier(e);
+      if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *s == '^') {
+        void *ptr = NULL;
+        [inv getArgument:&ptr atIndex:i];
+        *poutparams++ = (struct OutParam){.type = s+1, .p = ptr};
+        if (q & QUALIFIER_INOUT) {
+          if (!ptr) {
+            lua_pushnil(L);
+          } else {
+            lobjc_conv_objctolua1(L, s+1, ptr);
+          }
+          ++realargc;
+        }
+        ++nout;
+      } else {
+        unsigned char buffer[lobjc_conv_sizeof(L, s)];
+        [inv getArgument:buffer atIndex:i];
+        lobjc_conv_objctolua1(L, e, buffer);
+        ++realargc;
+      }
+    }
+  }
+  lua_call(L, 1+realargc, (has_some_result ? 1 : 0)+nout);
+  if (has_some_result) {
+    unsigned char buffer[[sig methodReturnLength]];
+    lobjc_conv_luatoobjc1(L, result_pos++, [sig methodReturnType], buffer);
+    [inv setReturnValue:buffer];
+  }
+  for (size_t i = 0; i < nout; ++i) {
+    if (outparams[i].p) {
+      lobjc_conv_luatoobjc1(L, result_pos++, outparams[i].type, outparams[i].p);
+    }
+  }
+  return 0;
+}
+
+void lobjc_invoke_lua_with_NSInvocation (lua_State *L, int ref, NSInvocation *inv) {
+  struct InvokeLuaParams p = {.inv = inv, .ref = ref};
+  if (lua_cpcall(L, invoke_lua_with_NSInvocation_aux, &p)) {
+    id err = [[lobjc_LuaError alloc] initWithLuaState: L errorMessageAt: -1];
+    lua_pop(L, 1);
+    @throw err;
+  }
+}
+
+
+
+

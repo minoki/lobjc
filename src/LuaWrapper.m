@@ -5,10 +5,15 @@
 
 #import "LuaWrapper.h"
 #import "lobjc.h"
+#import "lobjc_invoke.h"
 #import <lua.h>
 #import <lauxlib.h>
 #import <stdbool.h>
 #import <Foundation/Foundation.h>
+
+static id sel_to_id (SEL sel) {
+  return [NSValue value: &sel withObjCType: @encode(SEL)];
+}
 
 @implementation LuaWrapper
 
@@ -19,21 +24,29 @@
       [self release];
       return nil;
     }
-    lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:wrapper_cache");
-    if (lua_istable(L, -1)) {
-      lua_pushvalue(L, -2);
-      lua_gettable(L, -2);
-      id a = lobjc_rawtoid(L, -1);
-      if (a) {
-        [a retain];
-        [self release];
-        return a;
-      }
-      lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
     L_state = L;
-    ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    methods = [NSMutableDictionary new];
+    if (!methods) {
+      [self release];
+      return nil;
+    }
+    lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:wrapper_cache");
+    lua_pushvalue(L, -2);
+    lua_gettable(L, -2);
+    id a = lobjc_rawtoid(L, -1);
+    if (a) {
+      lua_pop(L, 3); // pop fetched value and registry["lobjc:wrapper_cache"]
+      [a retain];
+      [self release];
+      return a;
+    } else {
+      lua_pop(L, 1); // pop fetched value
+      lua_pushvalue(L, -2);
+      lobjc_rawpushid(L, self);
+      lua_settable(L, -3);
+      lua_pop(L, 1); // pop registry["lobjc:wrapper_cache"]
+      ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
   }
   return self;
 }
@@ -43,6 +56,7 @@
   if (L_state && ref != LUA_REFNIL) {
     luaL_unref(L_state, LUA_REGISTRYINDEX, ref);
   }
+  [methods release];
   [super dealloc];
 }
 
@@ -56,6 +70,31 @@
   }
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
   return true;
+}
+
+- (void)lobjc_addMethod:(SEL)sel type:(const char *)type {
+  [methods setObject: [NSMethodSignature signatureWithObjCTypes: type]
+              forKey: sel_to_id(sel)];
+}
+
+- (BOOL)respondsToSelector:(SEL)sel {
+  if ([methods objectForKey: sel_to_id(sel)]) {
+    return YES;
+  }
+  return [super respondsToSelector: sel];
+}
+
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)sel {
+  id m = [methods objectForKey: sel_to_id(sel)];
+  return m ? m : [super methodSignatureForSelector: sel];
+}
+
+- (void)forwardInvocation:(NSInvocation *)inv {
+  if ([methods objectForKey: sel_to_id(sel)]) {
+    lobjc_invoke_lua_with_NSInvocation(L_state, ref, inv);
+  } else {
+    [super forwardInvocation: inv];
+  }
 }
 
 @end
