@@ -90,11 +90,8 @@ static id sel_to_id (SEL sel) {
 }
 
 - (void)forwardInvocation:(NSInvocation *)inv {
-  if ([methods objectForKey: sel_to_id(sel)]) {
-    lobjc_invoke_lua_with_NSInvocation(L_state, ref, inv);
-  } else {
-    [super forwardInvocation: inv];
-  }
+  lobjc_invoke_lua_with_NSInvocation(L_state, ref, inv);
+  //[super forwardInvocation: inv];
 }
 
 @end

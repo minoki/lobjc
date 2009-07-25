@@ -50,6 +50,8 @@ _M.functions = {} -- C functions
 
 _M.structures = {} -- C structure constructors
 
+_M.informal_protocols = {} -- informal protocols
+
 
 local function loadBundle(bundle)
   if not bundle then
@@ -170,6 +172,16 @@ function NSDictionary_to_table(a)
     t[k] = a:objectForKey_(k)
   end
   return t
+end
+
+
+
+function implement_informal_protocol(o,name)
+  local protocol = _M.informal_protocols[name]
+  for sel,m in pairs(protocol.methods) do
+    runtime.registermethod(o,sel,m.type)
+  end
+  return o
 end
 
 

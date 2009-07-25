@@ -213,6 +213,10 @@ local function loadBS(b,bspath,bsinline)
 
   function handle_informal_protocol(e)
     local name = e.name
+    objc.informal_protocols[name] = objc.informal_protocols[name] or {}
+    local protocol = objc.informal_protocols[name]
+    protocol.name = name
+    protocol.methods = protocol.methods or {}
     for _,m in ipairs(e) do
       if m.tag ~= "method" then
         error("BridgeSupport: unknown tag in <informal_protocol>:"..m.tag)
@@ -228,7 +232,7 @@ local function loadBS(b,bspath,bsinline)
         -- not supported
 --        DEBUG_print("class_method in informal_protocol "..name.." "..selector.." "..type)
       else
-        -- what to do?
+        protocol.methods[selector] = {type=type}
       end
     end
   end
