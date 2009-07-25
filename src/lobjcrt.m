@@ -91,6 +91,19 @@ LUALIB_API id lobjc_toid (lua_State *L, int idx) {
   return [[[LuaWrapper alloc] initWithLuaState: L] autorelease];
 }
 
+LUALIB_API id lobjc_rawtoid (lua_State *L, int idx) {
+  if (lua_isuserdata(L, idx)) {
+    lua_getmetatable(L, idx);
+    luaL_getmetatable(L, tname_id);
+    if (lua_rawequal(L, -1, -2)) {
+      lua_pop(L, 2);
+      return *(id*)lua_touserdata(L, idx);
+    }
+    lua_pop(L, 2);
+  }
+  return nil;
+}
+
 
 static int id_gc (lua_State *L) {
   id *p = (id *)lua_touserdata(L, 1);
@@ -365,6 +378,22 @@ static int lobjc_overridesignature (lua_State *L) { /** overridesignature(method
   return 0;
 }
 
+static int lobjc_registerinformalprotocol (lua_State *L) { /** registerinformalprotocol(name) */
+  luaL_checktype(L, 1, LUA_TSTRING);
+  lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:informal_protocols");
+  lua_pushvalue(L, 1);
+  lua_gettable(L, -2);
+  if (lua_isnil(L, -1)) {
+    lua_pop(L, 1);
+    lua_newtable(L);
+    lua_pushvalue(L, -1);
+    lua_pushvalue(L, 1);
+    lua_settable(L, -4);
+  }
+  return 1;
+}
+
+
 
 
 // TODO: find suitable place for these functions
@@ -416,6 +445,7 @@ static const luaL_Reg funcs[] = {
   {"invoke", lobjc_invoke},
   {"gettypeencoding_x", lobjc_gettypeencoding_x},
   {"overridesignature", lobjc_overridesignature},
+  {"registerinformalprotocol", lobjc_registerinformalprotocol},
 
   {"NSData_to_string", lobjc_NSData_to_string},
   {"string_to_NSData", lobjc_string_to_NSData},
@@ -427,9 +457,9 @@ method_setImplementation
 method_getImplementation
 */
 
-static void initcache (lua_State *L, const char *name) {
+static void initcache (lua_State *L, const char *name, const char *mode) {
   lua_newtable(L);
-  lua_pushliteral(L, "v");
+  lua_pushstring(L, mode);
   lua_setfield(L, -2, "__mode");
   lua_pushvalue(L, -1);
   lua_setmetatable(L, -2);
@@ -445,9 +475,10 @@ static void setupautoreleasepool (lua_State *L) {
 LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   assert(run_simple_test(L));
 
-  initcache(L, "lobjc:id_cache");
-  initcache(L, "lobjc:Method_cache");
-  initcache(L, "lobjc:Ivar_cache");
+  initcache(L, "lobjc:id_cache", "v");
+  initcache(L, "lobjc:Method_cache", "v");
+  initcache(L, "lobjc:Ivar_cache", "v");
+  initcache(L, "lobjc:wrapper_cache", "kv");
 
   luaL_newmetatable(L, tname_id);
   luaL_register(L, NULL, idfuncs);
@@ -459,6 +490,9 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
 
   lua_newtable(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "lobjc:methodsig_override");
+
+  lua_newtable(L);
+  lua_setfield(L, LUA_REGISTRYINDEX, "lobjc:informal_protocols");
 
   luaL_register(L, "objc.runtime", funcs);
 

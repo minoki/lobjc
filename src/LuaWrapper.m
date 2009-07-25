@@ -4,6 +4,7 @@
 */
 
 #import "LuaWrapper.h"
+#import "lobjc.h"
 #import <lua.h>
 #import <lauxlib.h>
 #import <stdbool.h>
@@ -18,6 +19,19 @@
       [self release];
       return nil;
     }
+    lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:wrapper_cache");
+    if (lua_istable(L, -1)) {
+      lua_pushvalue(L, -2);
+      lua_gettable(L, -2);
+      id a = lobjc_rawtoid(L, -1);
+      if (a) {
+        [a retain];
+        [self release];
+        return a;
+      }
+      lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
     L_state = L;
     ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
