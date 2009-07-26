@@ -33,7 +33,7 @@ static id sel_to_id (SEL sel) {
     lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:wrapper_cache");
     lua_pushvalue(L, -2);
     lua_gettable(L, -2);
-    id a = lobjc_rawtoid(L, -1);
+    id a = (id)lua_touserdata(L, -1);
     if (a) {
       lua_pop(L, 3); // pop fetched value and registry["lobjc:wrapper_cache"]
       [a retain];
@@ -42,7 +42,7 @@ static id sel_to_id (SEL sel) {
     } else {
       lua_pop(L, 1); // pop fetched value
       lua_pushvalue(L, -2);
-      lobjc_rawpushid(L, self);
+      lua_pushlightuserdata(L, self);
       lua_settable(L, -3);
       lua_pop(L, 1); // pop registry["lobjc:wrapper_cache"]
       ref = luaL_ref(L, LUA_REGISTRYINDEX);
