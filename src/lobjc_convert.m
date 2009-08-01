@@ -99,7 +99,13 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
     }
   case '(': luaL_error(L, "lua->objc: union not supported"); break;
   case 'b': luaL_error(L, "lua->objc: bitfield not supported"); break;
-  case '^': luaL_error(L, "lua->objc: pointer not supported"); break;
+  case '^': {
+      const char *f = skip_type(L, e);
+      char t[f-e+1];
+      strncpy(t, e, sizeof(t));
+      *(void **)buffer = lobjc_checkpointer(L, n, t);
+      break;
+    }
   case '?': luaL_error(L, "lua->objc: unknown type"); break;
   case '\0': luaL_error(L, "lua->objc: unexpected end of type encoding"); break;
   default: luaL_error(L, "lua->objc: unknown type encoding: '%c'", c); break;
@@ -169,7 +175,13 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
     // TODO: なんかラップする
   case '(': luaL_error(L, "objc->lua: union not supported"); break;
   case 'b': luaL_error(L, "objc->lua: bitfield not supported"); break;
-  case '^': luaL_error(L, "objc->lua: pointer not supported"); break;
+  case '^': {
+      const char *f = skip_type(L, e);
+      char t[f-e+1];
+      strncpy(t, e, sizeof(t));
+      lobjc_pushpointer(L, t, *(void **)buffer);
+      break;
+    }
   case '?': luaL_error(L, "objc->lua: unknown type"); break;
   case '\0': luaL_error(L, "objc->lua: unexpected end of type encoding"); break;
   default: luaL_error(L, "objc->lua: unknown type encoding: '%c'", c); break;
