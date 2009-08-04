@@ -99,34 +99,38 @@ static size_t to_ffitype (lua_State *L, unsigned c,
   return size;
 }
 
-struct OutParam {
+struct ReturnValue {
   const char *type;
   void *p;
+  bool already_retained;
 };
 
-static void *fillargs (lua_State *L, int narg, const char *e,
-                       unsigned argc, void **args, unsigned char *buffer,
-                       struct OutParam *outparam) {
-  for (unsigned i = 0; i < argc; ++i) {
-    *args++ = buffer;
-    const char *f = e; // 位置を保存
-    unsigned char q = get_qualifier(e);
-    e = skip_qualifier(e);
-    if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *e == '^') {
-      void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, e+1));
-      *outparam++ = (struct OutParam){.type = e+1, .p = p};
-      *(void **)buffer = p;
-      if (q & QUALIFIER_INOUT) {
-        lobjc_conv_luatoobjc1(L, narg++, e+1, p);
-      }
-    } else {
-      lobjc_conv_luatoobjc1(L, narg++, f, buffer);
+static void getarg (lua_State *L, struct ReturnValue *retvals, size_t *pnout, const char *type, int *pnarg, void *buffer) {
+  unsigned char q = get_qualifier(type);
+  const char *realtype = skip_qualifier(type); // type encoding without qualifier
+
+  if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
+    const char *referedtype = realtype+1;
+    void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, referedtype));
+    retvals[(*pnout)++] = (struct ReturnValue){.type = referedtype, .p = p, .already_retained = false};
+    *(void **)buffer = p;
+    if (q & QUALIFIER_INOUT) {
+      lobjc_conv_luatoobjc1(L, (*pnarg)++, referedtype, p);
     }
-    e = skip_type(L, e);
-    buffer += lobjc_conv_sizeof(L, f);
-    while (isdigit(*e)) ++e; // skip digits
+  } else {
+    lobjc_conv_luatoobjc1(L, (*pnarg)++, type, buffer);
+  }  
+}
+
+static int pushresults (lua_State *L, struct ReturnValue* retvals, int count) {
+  for (int i = 0; i < count; ++i) {
+    if (retvals[i].already_retained) {
+      lobjc_conv_objctolua1_noretain(L, retvals[i].type, retvals[i].p);
+    } else {
+      lobjc_conv_objctolua1(L, retvals[i].type, retvals[i].p);
+    }
   }
-  return buffer;
+  return count;
 }
 
 int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
@@ -146,13 +150,37 @@ int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
   if (status == FFI_OK) {
     void *args[argc];
     unsigned char buffer[buffer_len]; // バッファオーバーフロー注意
-    struct OutParam outparams[nout];
+    struct ReturnValue retvals[nout+1];
+    size_t nret = 0; // number of results
+    void *ret_buffer = NULL;
 
     // スタックにuserdataがたまっている可能性あり
-    const char *b = skip_type(L, e); /* skip return type */
-    while (isdigit(*b)) ++b; // skip digits
-    void *ret_buffer = fillargs(L, firstarg, b,
-      argc, args, buffer, outparams);
+    {
+      void *buffer_ptr = buffer;
+
+      if (types[0] != &ffi_type_void) {
+        retvals[nret++] = (struct ReturnValue){
+          .type = e,
+          .p = buffer_ptr,
+          .already_retained = already_retained
+        };
+        ret_buffer = buffer_ptr;
+        *(unsigned char **)&buffer_ptr += lobjc_conv_sizeof(L, e); // size of return type
+      }
+
+      const char *type = skip_type(L, e); /* skip return type */
+      while (isdigit(*type)) ++type; // skip digits
+
+      int narg = firstarg; // index of arguments passed from lua
+
+      for (unsigned i = 0; i < argc; ++i) {
+        args[i] = buffer_ptr;
+        getarg(L, retvals, &nret, type, &narg, buffer_ptr);
+        *(unsigned char **)&buffer_ptr += lobjc_conv_sizeof(L, type); // size of return type
+        type = skip_type(L, type);
+        while (isdigit(*type)) ++type; // skip digits
+      }
+    }
 
     {
       id savedException = nil;
@@ -167,19 +195,7 @@ int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
       }
     }
 
-    int retc = nout; // Luaに返される戻り値の個数
-    if (types[0] != &ffi_type_void) {
-      ++retc;
-      if (already_retained) {
-        lobjc_conv_objctolua1_noretain(L, e, ret_buffer);
-      } else {
-        lobjc_conv_objctolua1(L, e, ret_buffer);
-      }
-    }
-    for (size_t i = 0; i < nout; ++i) {
-      lobjc_conv_objctolua1(L, outparams[i].type, outparams[i].p);
-    }
-    return retc;
+    return pushresults(L, retvals, nret);
   }
   return luaL_error(L, "ffi_prep_cif failed");
 }
@@ -187,7 +203,6 @@ int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
 int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
                                  NSMethodSignature *sig, int firstarg,
                                  bool already_retained) {
-  size_t nout = 0;
   size_t argc = [sig numberOfArguments];
   lua_settop(L, firstarg+argc-1); // 引数が足りなかった場合のエラーメッセージがちょっと変わるけど気にしない
 
@@ -195,30 +210,30 @@ int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
   [inv setSelector: sel]; // _cmd
   [inv setTarget: obj]; // self
 
-  struct OutParam outparams[argc];
+  struct ReturnValue retvals[argc+1];
+  size_t nret = 0;
+  void *ret_buffer = NULL;
   {
-    struct OutParam *outparam = outparams;
-    int narg = firstarg+2;
-    for (size_t i = 2; i < argc; ++i) {
-      const char *e = [sig getArgumentTypeAtIndex: i];
-      const char *f = e;
-      unsigned char q = get_qualifier(e);
-      e = skip_qualifier(e);
-      void *buffer = lua_newuserdata(L, lobjc_conv_sizeof(L, e));
-      if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *e == '^') {
-        ++nout;
-        void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, e+1));
-        *outparam++ = (struct OutParam){.type = e+1, .p = p};
-        *(void **)buffer = p;
-        if (q & QUALIFIER_INOUT) {
-          lobjc_conv_luatoobjc1(L, narg++, e+1, p);
-        }
-      } else {
-        lobjc_conv_luatoobjc1(L, narg++, f, buffer);
-      }
+    const char *rettype = [sig methodReturnType];
+    if (*skip_qualifier(rettype) != 'v') {
+      ret_buffer = lua_newuserdata(L, [sig methodReturnLength]);
+      retvals[nret++] = (struct ReturnValue){
+        .type = rettype,
+        .p = ret_buffer,
+        .already_retained = already_retained
+      };
+    }
+  }
+  {
+    int narg = firstarg+2; // firstarg is self and firstarg+1 is _cmd
+    for (unsigned i = 0; i < argc; ++i) {
+      const char *type = [sig getArgumentTypeAtIndex: i];
+      unsigned char buffer[lobjc_conv_sizeof(L, type)];
+      getarg(L, retvals, &nret, type, &narg, buffer);
       [inv setArgument: buffer atIndex: i];
     }
   }
+
   {
     id savedException = nil;
     @try {
@@ -231,30 +246,16 @@ int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
       return lobjc_exception_rethrow_as_lua(L, savedException);
     }
   }
-  {
-    const char *e = [sig methodReturnType];
-    int retc = nout; // number of results
-    if (*e != 'v') {
-      ++retc;
-      void *ret_buffer = lua_newuserdata(L, lobjc_conv_sizeof(L, e));
-      [inv getReturnValue: ret_buffer];
-      if (already_retained) {
-        lobjc_conv_objctolua1_noretain(L, e, ret_buffer);
-      } else {
-        lobjc_conv_objctolua1(L, e, ret_buffer);
-      }
-    }
-    for (size_t i = 0; i < nout; ++i) {
-      lobjc_conv_objctolua1(L, outparams[i].type, outparams[i].p);
-    }
-    return retc;
+
+  if (ret_buffer != NULL) {
+    [inv getReturnValue: ret_buffer];
   }
+  return pushresults(L, retvals, nret);
 }
 
 /*
 TODO:
 support array, union, bit-field
-support pointers
 */
 
 
@@ -267,59 +268,66 @@ struct InvokeLuaParams {
 static int invoke_lua_with_NSInvocation_aux (lua_State *L) {
   struct InvokeLuaParams *p = (struct InvokeLuaParams *)lua_touserdata(L, 1);
   NSInvocation *inv = p->inv;
-  SEL sel = [inv selector];
   NSMethodSignature *sig = [inv methodSignature];
-  bool has_some_result = *skip_qualifier([sig methodReturnType]) != 'v';
+
+  int realargc = 0; // number of arguments passed to lua
+  int nret = 0; // number of results expected to be returned from lua
+  size_t argc = [sig numberOfArguments];
+  struct ReturnValue retvals[argc];
+  const char *rettype = [sig methodReturnType];
+  void *ret_buffer = NULL;
+
+  if (*skip_qualifier(rettype) != 'v') {
+    ret_buffer = lua_newuserdata(L, [sig methodReturnLength]);
+    retvals[nret++] = (struct ReturnValue){
+      .type = rettype,
+      .p = ret_buffer
+    };
+  }
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, p->ref);
-  luaL_gsub(L, sel_getName(sel), ":", "_");
+  luaL_gsub(L, sel_getName([inv selector]), ":", "_");
   lua_gettable(L, -2); // the function
-
-  int result_pos = lua_gettop(L);
 
   lua_pushvalue(L, -2); // self
 
-  int realargc = 0;
-  size_t nout = 0;
-  size_t argc = [sig numberOfArguments];
-  struct OutParam outparams[argc];
   {
-    struct OutParam *poutparams = outparams;
     for (size_t i = 2; i < argc; ++i) {
-      const char *e = [sig getArgumentTypeAtIndex:i];
-      unsigned char q = get_qualifier(e);
-      const char *s = skip_qualifier(e);
-      if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *s == '^') {
+      const char *type = [sig getArgumentTypeAtIndex:i];
+      unsigned char q = get_qualifier(type);
+      const char *realtype = skip_qualifier(type);
+
+      if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
+        const char *referedtype = realtype;
         void *ptr = NULL;
         [inv getArgument:&ptr atIndex:i];
-        *poutparams++ = (struct OutParam){.type = s+1, .p = ptr};
+        retvals[nret++] = (struct ReturnValue){.type = referedtype, .p = ptr};
         if (q & QUALIFIER_INOUT) {
           if (!ptr) {
             lua_pushnil(L);
           } else {
-            lobjc_conv_objctolua1(L, s+1, ptr);
+            lobjc_conv_objctolua1(L, referedtype, ptr);
           }
           ++realargc;
         }
-        ++nout;
       } else {
-        unsigned char buffer[lobjc_conv_sizeof(L, s)];
+        unsigned char buffer[lobjc_conv_sizeof(L, type)];
         [inv getArgument:buffer atIndex:i];
-        lobjc_conv_objctolua1(L, e, buffer);
+        lobjc_conv_objctolua1(L, type, buffer);
         ++realargc;
       }
     }
   }
-  lua_call(L, 1+realargc, (has_some_result ? 1 : 0)+nout);
-  if (has_some_result) {
-    unsigned char buffer[[sig methodReturnLength]];
-    lobjc_conv_luatoobjc1(L, result_pos++, [sig methodReturnType], buffer);
-    [inv setReturnValue:buffer];
-  }
-  for (size_t i = 0; i < nout; ++i) {
-    if (outparams[i].p) {
-      lobjc_conv_luatoobjc1(L, result_pos++, outparams[i].type, outparams[i].p);
+
+  lua_call(L, 1+realargc, nret);
+
+  for (int i = 0; i < nret; ++i) {
+    if (retvals[i].p) {
+      lobjc_conv_luatoobjc1(L, i-nret, retvals[i].type, retvals[i].p);
     }
+  }
+  if (ret_buffer != NULL) {
+    [inv setReturnValue: ret_buffer];
   }
   return 0;
 }
