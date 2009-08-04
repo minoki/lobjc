@@ -110,12 +110,12 @@ static void getarg (lua_State *L, struct ReturnValue *retvals, size_t *pnout, co
   const char *realtype = skip_qualifier(type); // type encoding without qualifier
 
   if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
-    const char *referedtype = realtype+1;
-    void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, referedtype));
-    retvals[(*pnout)++] = (struct ReturnValue){.type = referedtype, .p = p, .already_retained = false};
+    const char *referredtype = realtype+1;
+    void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, referredtype));
+    retvals[(*pnout)++] = (struct ReturnValue){.type = referredtype, .p = p, .already_retained = false};
     *(void **)buffer = p;
     if (q & QUALIFIER_INOUT) {
-      lobjc_conv_luatoobjc1(L, (*pnarg)++, referedtype, p);
+      lobjc_conv_luatoobjc1(L, (*pnarg)++, referredtype, p);
     }
   } else {
     lobjc_conv_luatoobjc1(L, (*pnarg)++, type, buffer);
@@ -298,15 +298,15 @@ static int invoke_lua_with_NSInvocation_aux (lua_State *L) {
       const char *realtype = skip_qualifier(type);
 
       if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
-        const char *referedtype = realtype;
+        const char *referredtype = realtype;
         void *ptr = NULL;
         [inv getArgument:&ptr atIndex:i];
-        retvals[nret++] = (struct ReturnValue){.type = referedtype, .p = ptr};
+        retvals[nret++] = (struct ReturnValue){.type = referredtype, .p = ptr};
         if (q & QUALIFIER_INOUT) {
           if (!ptr) {
             lua_pushnil(L);
           } else {
-            lobjc_conv_objctolua1(L, referedtype, ptr);
+            lobjc_conv_objctolua1(L, referredtype, ptr);
           }
           ++realargc;
         }
