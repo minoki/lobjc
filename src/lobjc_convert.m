@@ -102,7 +102,8 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
   case '^': {
       const char *f = skip_type(L, e);
       char t[f-e+1];
-      strncpy(t, e, sizeof(t));
+      strncpy(t, e, sizeof(t)-1);
+      t[sizeof(t)-1] = '\0';
       if (q & QUALIFIER_CONST) {
         *(const void **)buffer = lobjc_checkconstpointer(L, n, t);
       } else {
@@ -184,7 +185,8 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
       const char *f = skip_type(L, e);
       NSLog(@"%s e:%p f:%p", e, e, f);
       char t[f-e+1];
-      strncpy(t, e, sizeof(t));
+      strncpy(t, e, sizeof(t)-1);
+      t[sizeof(t)-1] = '\0';
       if (q & QUALIFIER_CONST) {
         lobjc_pushconstpointer(L, t, *(const void **)buffer);
       } else {
