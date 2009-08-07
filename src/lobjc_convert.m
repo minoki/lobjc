@@ -183,7 +183,6 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
   case 'b': luaL_error(L, "objc->lua: bitfield not supported"); break;
   case '^': {
       const char *f = skip_type(L, e);
-      NSLog(@"%s e:%p f:%p", e, e, f);
       char t[f-e+1];
       strncpy(t, e, sizeof(t)-1);
       t[sizeof(t)-1] = '\0';
