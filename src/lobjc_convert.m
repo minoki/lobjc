@@ -103,7 +103,11 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
       const char *f = skip_type(L, e);
       char t[f-e+1];
       strncpy(t, e, sizeof(t));
-      *(void **)buffer = lobjc_checkpointer(L, n, t);
+      if (q & QUALIFIER_CONST) {
+        *(const void **)buffer = lobjc_checkconstpointer(L, n, t);
+      } else {
+        *(void **)buffer = lobjc_checkpointer(L, n, t);
+      }
       break;
     }
   case '?': luaL_error(L, "lua->objc: unknown type"); break;
@@ -115,6 +119,7 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
 
 static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool retain) {
   int t0 = lua_gettop(L);
+  unsigned char q = get_qualifier(e);
   e = skip_qualifier(e);
   char c = *e++;
   switch (c) {
@@ -177,9 +182,14 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
   case 'b': luaL_error(L, "objc->lua: bitfield not supported"); break;
   case '^': {
       const char *f = skip_type(L, e);
+      NSLog(@"%s e:%p f:%p", e, e, f);
       char t[f-e+1];
       strncpy(t, e, sizeof(t));
-      lobjc_pushpointer(L, t, *(void **)buffer);
+      if (q & QUALIFIER_CONST) {
+        lobjc_pushconstpointer(L, t, *(const void **)buffer);
+      } else {
+        lobjc_pushpointer(L, t, *(void **)buffer);
+      }
       break;
     }
   case '?': luaL_error(L, "objc->lua: unknown type"); break;
