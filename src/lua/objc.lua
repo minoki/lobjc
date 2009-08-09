@@ -128,51 +128,6 @@ function runtime.gettypeencoding(obj,sel)
 end
 
 
--- convert to NS*** collections
-function table_to_NSArray(t)
-  local a = classes.NSMutableArray:arrayWithCapacity_(#t)
-  for _,v in ipairs(t) do
-    a:addObject_(v)
-  end
-  return a
-end
-function table_to_NSDictionary(t)
-  local a = classes.NSMutableDictionary:new()
-  for k,v in pairs(t) do
-    a:setObject_forKey_(v,k)
-  end
-  return a
-end
-function table_to_NSSet(t)
-  local a = classes.NSMutableSet:new()
-  for _,v in ipairs(t) do
-    a:addObject_(v)
-  end
-  return a
-end
-function table_to_NSCountedSet(t)
-  local a = classes.NSCountedSet:new()
-  for _,v in ipairs(t) do
-    a:addObject_(v)
-  end
-  return a
-end
-
--- convert back from NS***
-function NSArray_to_table(a)
-  local t = {}
-  for x in enumerator(a:objectEnumerator()) do
-    table.insert(t,x)
-  end
-  return t
-end
-function NSDictionary_to_table(a)
-  local t = {}
-  for k in enumerator(a:objectEnumerator()) do
-    t[k] = a:objectForKey_(k)
-  end
-  return t
-end
 
 
 

@@ -409,7 +409,6 @@ static int lobjc_registermethod (lua_State *L) { /** registermethod(obj,name,typ
 
 
 
-// TODO: find suitable place for these functions
 static int lobjc_NSData_to_string (lua_State *L) { /** NSData_to_string(data) */
   NSData *data = lobjc_toid(L, 1);
   const void *bytes = [data bytes];
