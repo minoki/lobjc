@@ -87,7 +87,7 @@ local function findFileInDirectories(file,dirs)
 end
 
 table.insert(package.loaders,function(name)
-  local m = string.match(name,"^objc.framework:(%w+)$") or string.match(name,"^cocoa:(%w+)$")
+  local m = string.match(name,"^cocoa:(%w+)$")
   if not m then return end
   local path = findFileInDirectories(m..".framework",{
     "/System/Library/Frameworks",
@@ -102,23 +102,6 @@ table.insert(package.loaders,function(name)
   end
 end)
 
-local function enumerator_aux(e)
-  return e:nextObject()
-end
-function enumerator(e)
-  return enumerator_aux,e
-end
---[[
-for elem in objc.enumerator(arr:objectEnumerator()) do
-end
-function enumerator(e)
-  return function()
-    return e:nextObject()
-  end
-end
-for elem in (function() return e:nextObject() end) do
-end
-]]
 
 -- for debugging
 function runtime.gettypeencoding(obj,sel)
