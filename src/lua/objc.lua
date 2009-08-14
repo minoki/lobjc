@@ -10,7 +10,6 @@ local pairs,ipairs = pairs,ipairs
 local table = require "table"
 local string = require "string"
 local package = package
-local lfs = require "lfs" -- luafilesystem
 local runtime = require "objc.runtime"
 local bridgesupport -- load later
 module "objc"
@@ -79,7 +78,9 @@ bridgesupport.loadBridgeSupportFile "/System/Library/Frameworks/Foundation.frame
 local function findFileInDirectories(file,dirs)
   for _,dir in ipairs(dirs) do
     local path = dir.."/"..file
-    if lfs.attributes(path,"mode") then
+    local cpath = classes.NSString:stringWithUTF8String_(path)
+    cpath = cpath:stringByExpandingTildeInPath()
+    if classes.NSFileManager:defaultManager():fileExistsAtPath_(cpath) then
       return path
     end
   end
