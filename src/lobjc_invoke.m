@@ -111,7 +111,9 @@ static void getarg (lua_State *L, struct ReturnValue *retvals, size_t *pnout, co
 
   if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
     const char *referredtype = realtype+1;
-    void *p = lua_newuserdata(L, lobjc_conv_sizeof(L, referredtype));
+    size_t buffer_len = lobjc_conv_sizeof(L, referredtype);
+    void *p = lua_newuserdata(L, buffer_len);
+    memset(p, 0, buffer_len);
     retvals[(*pnout)++] = (struct ReturnValue){.type = referredtype, .p = p, .already_retained = false};
     *(void **)buffer = p;
     if (q & QUALIFIER_INOUT) {
