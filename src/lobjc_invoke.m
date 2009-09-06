@@ -228,7 +228,7 @@ int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
   }
   {
     int narg = firstarg+2; // firstarg is self and firstarg+1 is _cmd
-    for (unsigned i = 0; i < argc; ++i) {
+    for (unsigned i = 2; i < argc; ++i) {
       const char *type = [sig getArgumentTypeAtIndex: i];
       unsigned char buffer[lobjc_conv_sizeof(L, type)];
       getarg(L, retvals, &nret, type, &narg, buffer);
