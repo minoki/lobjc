@@ -14,11 +14,33 @@ local runtime = require "objc.runtime"
 local bridgesupport -- load later
 module "objc"
 
+local fields_proxy do
+  local cache = setmetatable({},{__mode="kv"})
+  local meta = {}
+  function meta:__index(k)
+    return runtime.getInstanceVariable(self[meta],k)
+  end
+  function meta:__newindex(k,v)
+    runtime.setInstanceVariable(self[meta],k,v)
+  end
+  function fields_proxy(o)
+    local c = cache[o]
+    if not c then
+      c = setmetatable({[meta]=o},meta)
+      cache[o] = c
+    end
+    return c
+  end
+end
+
 local id_meta = runtime.__id_metatable
 --runtime.__id_metatable = nil
-function id_meta:__index(sel)
-  assert(type(sel) == "string")
-  sel = string.gsub(sel,"_",":")
+function id_meta:__index(k)
+  if k == "__fields" then
+    return fields_proxy(self)
+  end
+  assert(type(k) == "string")
+  local sel = string.gsub(k,"_",":")
   return function(self,...)
     return runtime.invoke(self,sel,...)
   end

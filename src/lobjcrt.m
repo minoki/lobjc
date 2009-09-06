@@ -220,12 +220,69 @@ static int lobjc_object_setIvar (lua_State *L) { /** object_setIvar(obj,ivar,val
 static int lobjc_object_getInstanceVariable (lua_State *L) { /** object_getInstanceVariable(obj,name) */
   id obj = lobjc_toid(L, 1);
   const char *name = luaL_checkstring(L, 2);
-  void *value = NULL;
-  Ivar ivar = object_getInstanceVariable(obj, name, &value);
+
+  Class class = object_getClass(obj);
+  Ivar ivar = class_getInstanceVariable(class, name);
+  if (!ivar) {
+    return luaL_error(L, "no such instance variable");
+  }
   const char *type = ivar_getTypeEncoding(ivar);
-  lobjc_conv_objctolua1(L, type, value);
-  lobjc_pushptr(L, ivar, tname_Ivar, "lobjc:Ivar_cache");
-  return 2;
+  if (lobjc_conv_sizeof(L, type) != sizeof(void *)) {
+    return luaL_error(L, "types other than pointer are not supported");
+  }
+  void *value = NULL;
+  object_getInstanceVariable(obj, name, &value);
+  lobjc_conv_objctolua1(L, type, &value);
+  return 1;
+}
+
+static int lobjc_object_setInstanceVariable (lua_State *L) { /** object_setInstanceVariable(obj,name,value) */
+  id obj = lobjc_toid(L, 1);
+  const char *name = luaL_checkstring(L, 2);
+  luaL_checkany(L, 3);
+
+  Class class = object_getClass(obj);
+  Ivar ivar = class_getInstanceVariable(class, name);
+  if (!ivar) {
+    return luaL_error(L, "no such instance variable");
+  }
+  const char *type = ivar_getTypeEncoding(ivar);
+  if (lobjc_conv_sizeof(L, type) != sizeof(void *)) {
+    return luaL_error(L, "types other than pointer are not supported");
+  }
+  void *value = NULL;
+  lobjc_conv_luatoobjc1(L, 3, type, &value);
+  object_setInstanceVariable(obj, name, value);
+  return 0;
+}
+
+static int lobjc_getInstanceVariable (lua_State *L) { /** getInstanceVariable(obj,name) */
+  id obj = lobjc_toid(L, 1);
+  const char *name = luaL_checkstring(L, 2);
+
+  Class class = object_getClass(obj);
+  Ivar ivar = class_getInstanceVariable(class, name);
+  if (!ivar) {
+    return luaL_error(L, "no such instance variable");
+  }
+  const char *type = ivar_getTypeEncoding(ivar);
+  lobjc_conv_objctolua1(L, type, (unsigned char *)obj + ivar_getOffset(ivar));
+  return 1;
+}
+
+static int lobjc_setInstanceVariable (lua_State *L) { /** setInstanceVariable(obj,name,value) */
+  id obj = lobjc_toid(L, 1);
+  const char *name = luaL_checkstring(L, 2);
+  luaL_checkany(L, 3);
+
+  Class class = object_getClass(obj);
+  Ivar ivar = class_getInstanceVariable(class, name);
+  if (!ivar) {
+    return luaL_error(L, "no such instance variable");
+  }
+  const char *type = ivar_getTypeEncoding(ivar);
+  lobjc_conv_luatoobjc1(L, 3, type, (unsigned char *)obj + ivar_getOffset(ivar));
+  return 0;
 }
 
 static int lobjc_class_getName (lua_State *L) { /** class_getName(cls) */
@@ -440,6 +497,7 @@ static const luaL_Reg funcs[] = {
   {"object_getIvar",              lobjc_object_getIvar},
   {"object_setIvar",              lobjc_object_setIvar},
   {"object_getInstanceVariable",  lobjc_object_getInstanceVariable},
+  {"object_setInstanceVariable",  lobjc_object_setInstanceVariable},
   {"class_getName",               lobjc_class_getName},
   {"class_getSuperClass",         lobjc_class_getSuperclass},
   {"class_getInstanceVariable",   lobjc_class_getInstanceVariable},
@@ -459,6 +517,9 @@ static const luaL_Reg funcs[] = {
   {"overridesignature", lobjc_overridesignature},
   {"registerinformalprotocol", lobjc_registerinformalprotocol},
   {"registermethod", lobjc_registermethod},
+
+  {"getInstanceVariable",  lobjc_getInstanceVariable},
+  {"setInstanceVariable",  lobjc_setInstanceVariable},
 
   {"NSData_to_string", lobjc_NSData_to_string},
   {"string_to_NSData", lobjc_string_to_NSData},
