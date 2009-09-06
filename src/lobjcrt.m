@@ -78,16 +78,14 @@ LUALIB_API id lobjc_toid (lua_State *L, int idx) {
       return *(id*)lua_touserdata(L, idx);
     }
     lua_pop(L, 2);
-  } else if (lua_isstring(L, idx)) {
-    return [NSString stringWithUTF8String: lua_tostring(L, idx)];
-  } else if (lua_isboolean(L, idx)) {
-    return [NSNumber numberWithBool: lua_toboolean(L, idx)];
   } else if (lua_isnumber(L, idx)) {
-#if defined(LUA_NUMBER_DOUBLE)
-    return [NSNumber numberWithDouble: lua_tonumber(L, idx)];
-#else
-# error "cannot convert lua_Number to NSNumber"
-#endif
+    return [[[lobjc_LuaNumberProxy alloc] initWithLuaNumber: lua_tonumber(L, idx)] autorelease];
+  } else if (lua_isstring(L, idx)) {
+    size_t len = 0;
+    const char *str = lua_tolstring(L, idx, &len);
+    return [[[lobjc_LuaStringProxy alloc] initWithLuaString: str length: len] autorelease];
+  } else if (lua_isboolean(L, idx)) {
+    return [[[lobjc_LuaBooleanProxy alloc] initWithBool: lua_toboolean(L, idx)] autorelease];
   } else if (lua_isnoneornil(L, idx)) {
     return nil;
   }

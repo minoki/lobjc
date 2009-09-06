@@ -117,3 +117,88 @@ static int respondsToSelector_aux (lua_State *L) {
 @end
 
 
+@implementation lobjc_LuaValueProxy
+
+- (void)dealloc {
+  [_realObject release];
+  [super dealloc];
+}
+
+- (BOOL)respondsToSelector:(SEL)sel {
+  if (sel == @selector(lobjc_pushLuaValue:)) {
+    return YES;
+  }
+  return [_realObject respondsToSelector: sel];
+}
+
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)sel {
+  return [_realObject methodSignatureForSelector: sel];
+}
+
+- (void)forwardInvocation:(NSInvocation *)inv {
+  [inv invokeWithTarget: _realObject];
+}
+
+- (bool)lobjc_pushLuaValue:(lua_State *)L {
+  return false;
+}
+
+@end
+
+@implementation lobjc_LuaNumberProxy
+
+- (id)initWithLuaNumber:(lua_Number)value {
+#if defined(LUA_NUMBER_DOUBLE)
+  _realObject = [[NSNumber alloc] initWithDouble: value];
+#else
+# error "cannot convert lua_Number to NSNumber"
+#endif
+  _value = value;
+  return self;
+}
+
+- (bool)lobjc_pushLuaValue:(lua_State *)L {
+  lua_pushnumber(L, _value);
+  return true;
+}
+
+@end
+
+@implementation lobjc_LuaBooleanProxy
+
+- (id)initWithBool:(bool)value {
+  _realObject = [[NSNumber alloc] initWithBool: value];
+  _value = value;
+  return self;
+}
+
+- (bool)lobjc_pushLuaValue:(lua_State *)L {
+  lua_pushboolean(L, _value);
+  return true;
+}
+
+@end
+
+@implementation lobjc_LuaStringProxy
+
+- (id)initWithLuaString:(const char *)str length:(size_t)len {
+  _realObject = [[NSString alloc] initWithUTF8String: str];
+  _str = malloc(len+1);
+  memcpy(_str, str, len+1);
+  _len = len;
+  return self;
+}
+
+- (void)dealloc {
+  free(_str);
+  [super dealloc];
+}
+
+- (bool)lobjc_pushLuaValue:(lua_State *)L {
+  lua_pushlstring(L, _str, _len);
+  return true;
+}
+
+@end
+
+

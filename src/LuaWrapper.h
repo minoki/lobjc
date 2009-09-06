@@ -28,4 +28,29 @@
 
 @end
 
+@interface lobjc_LuaValueProxy : NSProxy {
+  id _realObject;
+}
+- (bool)lobjc_pushLuaValue:(lua_State *)L;
+@end
+
+@interface lobjc_LuaNumberProxy : lobjc_LuaValueProxy {
+  lua_Number _value;
+}
+- (id)initWithLuaNumber:(lua_Number)value;
+@end
+
+@interface lobjc_LuaBooleanProxy : lobjc_LuaValueProxy {
+  bool _value;
+}
+- (id)initWithBool:(bool)value;
+@end
+
+@interface lobjc_LuaStringProxy : lobjc_LuaValueProxy {
+  char *_str;
+  size_t _len;
+}
+- (id)initWithLuaString:(const char *)str length:(size_t)len;
+@end
+
 #endif
