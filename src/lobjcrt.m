@@ -466,6 +466,30 @@ static int lobjc_registermethod (lua_State *L) { /** registermethod(obj,name,typ
 
 
 
+static int lobjc_createClass (lua_State *L) { /** createClass(name,super,fields) */
+  const char *classname = luaL_checkstring(L, 1);
+  Class superclass = lobjc_toclass(L, 2);
+  bool hasfields = lua_istable(L, 3);
+  Class class = objc_allocateClassPair(superclass, classname, 0);
+
+  if (hasfields) {
+    int len = lua_objlen(L, 3);
+    for (int i = 1; i <= len; ++i) {
+      lua_rawgeti(L, 3, i);
+      const char *fieldname = lua_tostring(L, -1);
+      class_addIvar(class, fieldname, sizeof(id), log2(sizeof(id)), @encode(id));
+      lua_pop(L, 1);
+    }
+  }
+
+  objc_registerClassPair(class);
+
+  lobjc_pushclass(L, class);
+  return 1;
+}
+
+
+
 static int lobjc_NSData_to_string (lua_State *L) { /** NSData_to_string(data) */
   NSData *data = lobjc_toid(L, 1);
   const void *bytes = [data bytes];
@@ -517,6 +541,7 @@ static const luaL_Reg funcs[] = {
   {"overridesignature", lobjc_overridesignature},
   {"registerinformalprotocol", lobjc_registerinformalprotocol},
   {"registermethod", lobjc_registermethod},
+  {"createClass", lobjc_createClass},
 
   {"getInstanceVariable",  lobjc_getInstanceVariable},
   {"setInstanceVariable",  lobjc_setInstanceVariable},
