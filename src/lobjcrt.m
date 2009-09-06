@@ -67,8 +67,6 @@ LUALIB_API void lobjc_rawpushid (lua_State *L, id obj) {
 }
 
 
-// TODO: make it possible to distinguish automatically-converted objects
-//       from other objects
 LUALIB_API id lobjc_toid (lua_State *L, int idx) {
   if (lua_isuserdata(L, idx)) { // TODO: try metamethod
     lua_getmetatable(L, idx);
