@@ -300,7 +300,7 @@ static int invoke_lua_with_NSInvocation_aux (lua_State *L) {
       const char *realtype = skip_qualifier(type);
 
       if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
-        const char *referredtype = realtype;
+        const char *referredtype = realtype+1;
         void *ptr = NULL;
         [inv getArgument:&ptr atIndex:i];
         retvals[nret++] = (struct ReturnValue){.type = referredtype, .p = ptr};
