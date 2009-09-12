@@ -484,6 +484,20 @@ static int lobjc_createClass (lua_State *L) { /** createClass(name,super,fields)
   return 1;
 }
 
+static int lobjc_class_addMethod (lua_State *L) { /** class_addMethod(cls,sel,imp,types) */
+  Class cls = lobjc_toclass(L, 1);
+  SEL sel = lobjc_checkselector(L, 2);
+  luaL_checktype(L, 3, LUA_TFUNCTION);
+  const char *types = luaL_checkstring(L, 4);
+
+  lua_pushvalue(L, 3);
+  IMP imp = lobjc_buildIMP(L, types);
+  luaL_ref(L, LUA_REGISTRYINDEX);
+  
+  lua_pushboolean(L, class_addMethod(cls, sel, imp, types));
+  return 1;
+}
+
 
 
 static int lobjc_NSData_to_string (lua_State *L) { /** NSData_to_string(data) */
@@ -538,6 +552,7 @@ static const luaL_Reg funcs[] = {
   {"registerinformalprotocol", lobjc_registerinformalprotocol},
   {"registermethod", lobjc_registermethod},
   {"createClass", lobjc_createClass},
+  {"class_addMethod", lobjc_class_addMethod},
 
   {"getInstanceVariable",  lobjc_getInstanceVariable},
   {"setInstanceVariable",  lobjc_setInstanceVariable},

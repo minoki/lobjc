@@ -22,4 +22,6 @@ int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
 
 void lobjc_invoke_lua_with_NSInvocation (lua_State *L, int ref, NSInvocation *inv);
 
+IMP lobjc_buildIMP (lua_State *L, const char *sig);
+
 #endif

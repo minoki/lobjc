@@ -345,4 +345,168 @@ void lobjc_invoke_lua_with_NSInvocation (lua_State *L, int ref, NSInvocation *in
 
 
 
+struct ClosureInfo {
+  lua_State *L;
+  int ref;
+  const char *sig;
+  bool hasresult;
+  size_t argc;
+  size_t nout;
+  size_t resultlength;
+  ffi_cif cif;
+  ffi_closure *cl;
+};
+
+struct CallInfo {
+  struct ClosureInfo *cli;
+  void *ret;
+  void **args;
+};
+
+static int imp_protected (lua_State *L) {
+  struct CallInfo *ci = lua_touserdata(L, 1);
+  struct ClosureInfo *cli = ci->cli;
+
+  struct ReturnValue retvals[cli->nout];
+  size_t nret = 0;
+  const char *rettype = cli->sig;
+  const char *type = cli->sig;
+  int realargc = 0;
+
+  if (cli->hasresult) {
+    retvals[nret++] = (struct ReturnValue){
+      .type = rettype,
+      .p = ci->ret
+    };
+  }
+  type = skip_type(L, type);
+  while (isdigit(*type)) ++type;
+
+  // push the lua function
+  lua_rawgeti(L, LUA_REGISTRYINDEX, cli->ref);
+
+  for (size_t i = 0; i < cli->argc; ++i) {
+    unsigned char q = get_qualifier(type);
+    const char *realtype = skip_qualifier(type);
+
+    if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && *realtype == '^') {
+      const char *referredtype = realtype+1;
+      void *ptr = *(void **)ci->args[i];
+      retvals[nret++] = (struct ReturnValue){.type = referredtype, .p = ptr};
+      if (q & QUALIFIER_INOUT) {
+        if (!ptr) {
+          lua_pushnil(L);
+        } else {
+          lobjc_conv_objctolua1(L, referredtype, ptr);
+        }
+        ++realargc;
+      }
+    } else {
+      lobjc_conv_objctolua1(L, type, ci->args[i]);
+      ++realargc;
+    }
+
+    type = skip_type(L, type);
+    while (isdigit(*type)) ++type;
+  }
+
+  lua_call(L, realargc, nret);
+
+  for (int i = 0; i < nret; ++i) {
+    if (retvals[i].p) {
+      lobjc_conv_luatoobjc1(L, i-nret, retvals[i].type, retvals[i].p);
+    }
+  }
+  return 0;
+}
+
+static void imp_proxy (ffi_cif *cif, void *ret, void **args, void *userdata) {
+  struct ClosureInfo *cli = userdata;
+  lua_State *L = cli->L;
+  struct CallInfo ci = {.cli = cli, .ret = ret, .args = args};
+  if (lua_cpcall(L, imp_protected, &ci)) {
+    id err = [[[lobjc_LuaError alloc] initWithLuaState: L errorMessageAt: -1] autorelease];
+    lua_pop(L, 1);
+    @throw err;
+  }
+}
+
+static int closureinfo_gc (lua_State *L) {
+  struct ClosureInfo *cli = lua_touserdata(L, 1);
+  if (cli->cl) {
+    ffi_closure_free(cli->cl);
+  }
+  return 0;
+}
+
+IMP lobjc_buildIMP (lua_State *L, const char *sig) {
+  int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  struct ClosureInfo *cli = lua_newuserdata(L, sizeof(struct ClosureInfo));
+  *cli = (struct ClosureInfo) {
+    .L = L, .ref = ref,
+    .sig = sig, .hasresult = false,
+    .argc = 0, .nout = 0,
+    .cl = NULL
+  };
+  if (luaL_newmetatable(L, "lobjc:ClosureInfo")) {
+    lua_pushcfunction(L, closureinfo_gc);
+    lua_setfield(L, -2, "__gc");
+  }
+  lua_setmetatable(L, -2);
+
+  // environment table of cli
+  lua_newtable(L);
+  
+  lua_pushvalue(L, -1);
+  lua_setfenv(L, -3);
+  
+  lua_pushstring(L, sig);
+  cli->sig = lua_tostring(L, -1);
+  luaL_ref(L, -2);
+
+  // stack: <cli> <env>
+
+  {
+    const char *e = skip_qualifier(sig);
+    cli->hasresult = *e != 'v';
+    e = skip_type(L, e);
+    while (isdigit(*e)) ++e;
+    while (*e) {
+      ++cli->argc;
+      e = skip_type(L, e);
+      while (isdigit(*e)) ++e;
+    }
+  }
+
+  {
+    int n = lua_gettop(L);
+    ffi_type **types = lua_newuserdata(L, sizeof(ffi_type *)*(cli->argc+1));
+    to_ffitype(L, cli->argc+1, sig, types, &cli->nout);
+    while (lua_gettop(L) > n) luaL_ref(L, n);
+
+    ffi_status status = ffi_prep_cif(&cli->cif, FFI_DEFAULT_ABI, cli->argc,
+      types[0], &types[1]);
+    if (status != FFI_OK) {
+      return luaL_error(L, "ffi_prep_cif failed"), NULL;
+    }
+
+    void *codeloc;
+    cli->cl = ffi_closure_alloc(sizeof(ffi_closure), &codeloc);
+    if (!cli->cl) {
+      return luaL_error(L, "ffi_closure_alloc failed"), NULL;
+    }
+
+    status = ffi_prep_closure_loc(cli->cl, &cli->cif, imp_proxy, cli, codeloc);
+    if (status != FFI_OK) {
+      return luaL_error(L, "ffi_prep_closure_loc failed"), NULL;
+    }
+
+    lua_pop(L, 1); // pop environment table of cli
+
+    // should luaL_ref(L, LUA_REGISTRYINDEX) here?
+
+    return (IMP)codeloc;
+  }
+}
+
 
