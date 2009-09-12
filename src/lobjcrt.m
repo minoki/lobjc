@@ -630,5 +630,8 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   lua_pushcfunction(L, luaopen_objc_runtime_pointer);
   lua_call(L, 0, 0);
 
+  lua_pushcfunction(L, luaopen_objc_runtime_bridgesupport);
+  lua_call(L, 0, 0);
+
   return 1;
 }

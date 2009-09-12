@@ -21,6 +21,7 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L);
 LUALIB_API int luaopen_objc_runtime_struct (lua_State *L);
 LUALIB_API int luaopen_objc_runtime_ffi (lua_State *L);
 LUALIB_API int luaopen_objc_runtime_pointer (lua_State *L);
+LUALIB_API int luaopen_objc_runtime_bridgesupport (lua_State *L);
 
 static inline void lobjc_pushselector (lua_State *L, SEL sel) {
   lua_pushstring(L, sel_getName(sel));

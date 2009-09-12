@@ -5,10 +5,10 @@ local string  = require "string"
 local table   = require "table"
 local io      = require "io"
 local os      = require "os"
-local lxp     = require "lxp" -- expat
 local objc    = require "objc"
 local runtime = require "objc.runtime"
 local ffi     = require "objc.runtime.ffi"
+local runtime_bridgesupport = require "objc.runtime.bridgesupport"
 local typeencoding = require "objc.typeencoding"
 module "objc.bridgesupport"
 local skipqualifier,skiptype = typeencoding.skipqualifier,typeencoding.skiptype
@@ -32,31 +32,6 @@ assert(frameworkname("/System/Library/Frameworks/Foundation.framework/") == "Fou
 ]]
 
 
-local function parsexml(data)
-  local callbacks,results = {},{}
-  function callbacks.StartElement(parser,name,attr)
-    local t = {tag = name}
-    for k,v in pairs(attr) do
-      if type(k) == "string" then
-        t[k] = v
-      end
-    end
-    table.insert(results,t)
-    local results0 = results
-    results = t
-    local EndElement0 = callbacks.EndElement
-    callbacks.EndElement = function(parser,name2)
-      assert(name == name2,"StartElement and EndElement do not match")
-      results = results0
-      callbacks.EndElement = EndElement0
-    end
-  end
-  local p = lxp.new(callbacks)
-  p:parse(data)
-  p:close()
-  if not results[1] then return nil,"no root element" end
-  return results[1]
-end
 
 local choose64
 if runtime._PTRSIZE == 8 then -- 64bit
@@ -362,7 +337,7 @@ function loadBridgeSupportFile(fwpath,force)
   if not f then return f,"could not load BridgeSupport file: "..e end
   local data = f:read("*a")
   f:close()
-  local x,e = parsexml(data)
+  local x,e = runtime_bridgesupport.parsexml(data)
   if not x then return x,e end
   if not loaded_inline[bsinline_path] then
     loaded_inline[bsinline_path] = ffi.opendylib(bsinline_path)

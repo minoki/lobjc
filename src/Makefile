@@ -10,6 +10,7 @@ OBJS= \
   lobjc_ffi.o \
   lobjc_exception.o \
   lobjc_pointer.o \
+  lobjc_bridgesupport.o \
   typeencoding.o \
   LuaWrapper.o \
   simplecheck.o
