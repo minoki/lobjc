@@ -33,11 +33,24 @@ local fields_proxy do
   end
 end
 
+local objc_super_meta = {}
+function objc_super_meta:__index(k)
+  assert(type(k) == "string")
+  local sel = string.gsub(k,"_",":")
+  return function(self,...)
+    return runtime.invokewithclass(self.class,self.receiver,sel,...)
+  end
+end
+
 local id_meta = runtime.__id_metatable
 --runtime.__id_metatable = nil
 function id_meta:__index(k)
   if k == "__fields" then
     return fields_proxy(self)
+  elseif k == "__super" then
+    return function(class)
+      return setmetatable({receiver=self,class=class},objc_super_meta)
+    end
   end
   assert(type(k) == "string")
   local sel = string.gsub(k,"_",":")
