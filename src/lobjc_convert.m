@@ -69,7 +69,7 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
       const char *typeenc_start = e-1;
       size_t size = lobjc_conv_sizeof(L, e-1);
       e = skip_type(L, e-1);
-      if (luaL_getmetafield(L, n, "__toobjcstruct")) {
+      if (luaL_getmetafield(L, n, "__toobjc")) {
         lua_pushvalue(L, n);
         lua_pushlstring(L, typeenc_start, e-typeenc_start);
         lua_call(L, 2, 1);
@@ -77,18 +77,18 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
           size_t retlen;
           const char *s = lua_tolstring(L, -1, &retlen);
           if (size != retlen) {
-            luaL_error(L, "lua->objc: #%d '__toobjcstruct' metamethod returned wrong size of string", n);
+            luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned wrong size of string", n);
           }
           memcpy(buffer, s, size);
         } else if (lua_isuserdata(L, -1)) {
           size_t retlen = lua_objlen(L, -1);
           if (size != retlen) {
-            luaL_error(L, "lua->objc: #%d '__toobjcstruct' metamethod returned wrong size of userdata", n);
+            luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned wrong size of userdata", n);
           }
           void *p = lua_touserdata(L, -1);
           memcpy(buffer, p, size);
         } else {
-          luaL_error(L, "lua->objc: #%d '__toobjcstruct' metamethod returned non-string", n);
+          luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned non-string", n);
         }
         lua_pop(L, 1);
       } else {

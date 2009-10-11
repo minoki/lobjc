@@ -40,7 +40,7 @@ static int lobjc_struct_new (lua_State *L) { /** new(tagname,...) */
 }
 
 
-static int struct_toobjcstruct (lua_State *L) { /** __toobjcstruct(self,type) */
+static int struct_toobjc (lua_State *L) { /** __toobjc(self,type) */
   luaL_checktype(L, 1, LUA_TTABLE);
   size_t typeenc_len;
   const char *e = luaL_checklstring(L, 2, &typeenc_len);
@@ -78,7 +78,7 @@ static int struct_toobjcstruct (lua_State *L) { /** __toobjcstruct(self,type) */
 
 
 static const luaL_Reg structfuncs[] = {
-  {"__toobjcstruct", struct_toobjcstruct},
+  {"__toobjc", struct_toobjc},
   {NULL, NULL}
 };
 
