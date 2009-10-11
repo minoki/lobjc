@@ -11,7 +11,7 @@
 #import <lauxlib.h>
 #import <string.h>
 
-static const char tname_struct[] = "objc:struct";
+static const char tname_struct[] = "lobjc:struct";
 
 static inline size_t round_align(size_t n, size_t align) {
   return ((n+align-1)/align)*align;

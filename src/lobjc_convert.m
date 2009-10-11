@@ -174,7 +174,7 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
         lua_rawseti(L, -2, n++);
         e = skip_type(L, e);
       }
-      luaL_getmetatable(L, "objc:struct");
+      luaL_getmetatable(L, "lobjc:struct");
       lua_setmetatable(L, -2);
       break;
     }
