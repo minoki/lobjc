@@ -125,7 +125,7 @@ static int respondsToSelector_aux (lua_State *L) {
 }
 
 - (BOOL)respondsToSelector:(SEL)sel {
-  if (sel == @selector(lobjc_pushLuaValue:)) {
+  if (sel_isEqual(sel, @selector(lobjc_pushLuaValue:))) {
     return YES;
   }
   return [_realObject respondsToSelector: sel];

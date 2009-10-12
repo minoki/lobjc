@@ -371,19 +371,23 @@ retry:
   }
 }
 
+static bool isReturnValueAlreadyRetained(SEL sel) {
+  return false // TODO: take into account already_retained attribute in BridgeSupport
+    || sel_isEqual(sel, @selector(alloc))
+    || sel_isEqual(sel, @selector(allocWithZone:))
+    || sel_isEqual(sel, @selector(new))
+    || sel_isEqual(sel, @selector(newObject))
+    || sel_isEqual(sel, @selector(copy))
+    || sel_isEqual(sel, @selector(copyWithZone:))
+    || sel_isEqual(sel, @selector(mutableCopy))
+    || sel_isEqual(sel, @selector(mutableCopyWithZone:));
+}
+
 static int lobjc_invoke (lua_State *L) { /** invoke(obj,sel,...) */
   id obj        = lobjc_toid(L, 1);
   SEL sel       = sel_registerName(luaL_checkstring(L, 2));
   Class class   = object_getClass(obj);
-  bool already_retained = false // TODO: take into account already_retained attribute in BridgeSupport
-    || sel == @selector(alloc)
-    || sel == @selector(allocWithZone:)
-    || sel == @selector(new)
-    || sel == @selector(newObject)
-    || sel == @selector(copy)
-    || sel == @selector(copyWithZone:)
-    || sel == @selector(mutableCopy)
-    || sel == @selector(mutableCopyWithZone:);
+  bool already_retained = isReturnValueAlreadyRetained(sel);
   Method method = class_getInstanceMethod(class, sel);
   if (!method) {
     if ([obj respondsToSelector: sel]) {
@@ -406,15 +410,7 @@ static int lobjc_invokewithclass (lua_State *L) { /** invokewithclass(obj,sel,..
   id obj        = lobjc_toid(L, 2);
   SEL sel       = sel_registerName(luaL_checkstring(L, 3));
   assert([obj isKindOfClass:class]);
-  bool already_retained = false // TODO: take into account already_retained attribute in BridgeSupport
-    || sel == @selector(alloc)
-    || sel == @selector(allocWithZone:)
-    || sel == @selector(new)
-    || sel == @selector(newObject)
-    || sel == @selector(copy)
-    || sel == @selector(copyWithZone:)
-    || sel == @selector(mutableCopy)
-    || sel == @selector(mutableCopyWithZone:);
+  bool already_retained = isReturnValueAlreadyRetained(sel);
   Method method = class_getInstanceMethod(class, sel);
   if (!method) {
     return 0;
