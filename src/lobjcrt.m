@@ -169,23 +169,6 @@ static int lobjc_objc_getMetaClass (lua_State *L) { /** objc_getMetaClass(name) 
   return 1;
 }
 
-static int lobjc_objc_allocateClassPair (lua_State *L) { /** objc_allocateClassPair(super,name,extraBytes) */
-  Class superclass = lobjc_toclass(L, 1);
-  luaL_argcheck(L, superclass != Nil, 1, "no superclass specified"); // deny creating a new root class
-  const char *name = luaL_checkstring(L, 2);
-  size_t extraBytes = (size_t)luaL_optnumber(L, 3, 0);
-  Class newclass = objc_allocateClassPair(superclass, name, extraBytes);
-  // NB: do not try to invoke a method of newclass
-  pushid_impl(L, newclass, false, false);
-  return 1;
-}
-
-static int lobjc_objc_registerClassPair(lua_State *L) { /** objc_registerClassPair(cls) */
-  Class cls = lobjc_toclass(L, 1);
-  objc_registerClassPair(cls);
-  return 0;
-}
-
 static int lobjc_object_getClass (lua_State *L) { /** object_getClass(obj) */
   lobjc_pushclass(L, object_getClass(lobjc_toid(L, 1)));
   return 1;
@@ -553,8 +536,6 @@ static const luaL_Reg funcs[] = {
   {"objc_lookUpClass",            lobjc_objc_lookUpClass},
   {"objc_getClass",               lobjc_objc_getClass},
   {"objc_getMetaClass",           lobjc_objc_getMetaClass},
-  {"objc_allocateClassPair",      lobjc_objc_allocateClassPair},
-  {"objc_registerClassPair",      lobjc_objc_registerClassPair},
   {"object_getClass",             lobjc_object_getClass},
   {"object_getClassName",         lobjc_object_getClassName},
   {"object_setClass",             lobjc_object_setClass},
