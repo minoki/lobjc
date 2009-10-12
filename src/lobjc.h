@@ -9,7 +9,11 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <objc/objc.h>
+#if defined(__NEXT_RUNTIME__)
 #include <objc/runtime.h>
+#else /* GNU runtime */
+#include "lobjc-compat.h"
+#endif
 
 LUALIB_API void lobjc_pushid (lua_State *L, id obj);
 LUALIB_API void lobjc_pushid_noretain (lua_State *L, id obj);

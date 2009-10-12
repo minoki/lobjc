@@ -9,7 +9,11 @@
 #import "lobjc_convert.h"
 #import "lobjc_exception.h"
 
-#import <objc/runtime.h>
+#if defined(__NEXT_RUNTIME__)
+#include <objc/runtime.h>
+#else /* GNU runtime */
+#include "lobjc-compat.h"
+#endif
 #import <lua.h>
 #import <lauxlib.h>
 #import <ffi.h>

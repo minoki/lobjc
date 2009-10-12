@@ -9,12 +9,17 @@
 #import "typeencoding.h"
 #import "LuaWrapper.h"
 
-#import <objc/runtime.h>
+#if defined(__NEXT_RUNTIME__)
+#include <objc/runtime.h>
+#else /* GNU runtime */
+#include "lobjc-compat.h"
+#endif
 #import <lua.h>
 #import <lauxlib.h>
 #import <Foundation/Foundation.h>
 #import <stdbool.h>
 #import <assert.h>
+#import <math.h>
 
 extern int run_simple_test (lua_State *L);
 

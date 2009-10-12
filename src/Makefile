@@ -1,7 +1,25 @@
-CFLAGS= -std=c99 -DLUA_LIB -I/opt/local/include -Wall -fobjc-exceptions $(MYCFLAGS)
+# Makefile for lobjc
+
+ifeq ($(shell uname),Darwin)
+  ENVIRONMENT= cocoa
+  LINK= $(CC) -bundle -undefined dynamic_lookup
+else
+  ENVIRONMENT= gnustep
+  LINK= $(CC) -shared
+endif
+
+ifeq ($(ENVIRONMENT),cocoa)
+  LIBS+= -framework Foundation
+else
+  CFLAGS+= $(shell gnustep-config --objc-flags)
+  LIBS+= $(shell gnustep-config --base-libs)
+endif
+
+CFLAGS+= $(shell pkg-config --cflags libffi)
+LIBS+= $(shell pkg-config --libs libffi)
+
+CFLAGS+= -std=c99 -DLUA_LIB -Wall -fobjc-exceptions $(MYCFLAGS)
 # -fobjc-gc -D"id=__strong id"
-LINKFLAGS= -L/opt/local/lib $(MYLINKFLAGS)
-LIBS= -lffi -framework Foundation
 OBJS= \
   lobjcrt.o \
   lobjc_invoke.o \
@@ -13,13 +31,14 @@ OBJS= \
   lobjc_bridgesupport.o \
   typeencoding.o \
   LuaWrapper.o \
-  simplecheck.o
+  simplecheck.o \
+  lobjc-compat.o
 SO= objc.so
 
 all: $(SO)
 
 $(SO): $(OBJS)
-	$(CC) -bundle -undefined dynamic_lookup $(LINKFLAGS) -o $@ $^ $(LIBS)
+	$(LINK) -o $@ $^ $(LIBS)
 
 .m.o:
 	$(CC) -o $@ -c $(CFLAGS) $<
@@ -29,7 +48,7 @@ clean:
 	rm -f $(SO)
 
 test: tests/test.m $(OBJS)
-	$(CC) -o $@ $(CFLAGS) $(LINKFLAGS) -I. $^ -llua -lobjc $(LIBS)
+	$(CC) -o $@ $(CFLAGS) -I. $^ -llua -lobjc $(LIBS)
 
 depend:
 	$(CC) -MM $(CFLAGS) *.m > depend.mak

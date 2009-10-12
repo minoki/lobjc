@@ -3,6 +3,8 @@
 ** See file COPYRIGHT for more information
 */
 
+#define _GNU_SOURCE
+
 #import "lobjc.h"
 #import "lobjc_convert.h"
 #import "lobjc_invoke.h"
