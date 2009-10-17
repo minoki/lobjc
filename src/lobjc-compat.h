@@ -17,20 +17,20 @@
 #include <Foundation/NSObjCRuntime.h>
 #undef sel_getName
 #undef sel_registerName
+#undef objc_lookUpClass
 #undef objc_getClass
 #undef class_getInstanceMethod
 #undef class_getClassMethod
 
+#define objc_lookUpClass(name)   objc_lookup_class(name)
 #define objc_getClass(name)      objc_get_class(name)
 #define sel_getName(sel)         sel_get_name(sel)
 #define sel_registerName(sel)    sel_register_name(sel)
 #define sel_isEqual(a,b)         sel_eq(a,b)
 #define object_getClassName(obj) object_get_class_name(obj)
 #define class_getName(cls)       class_get_class_name(cls)
-#define class_getSuperclass(cls) class_get_super_class(cls)
 #define class_isMetaClass(cls)   class_is_meta_class(cls)
 #define class_getInstanceMethod(cls,name) class_get_instance_method(cls,name)
-#define class_getClassMethod(cls,name) class_get_class_method(cls,name)
 #define method_getNumberOfArguments(m)    method_get_number_of_arguments(m)
 
 #define Method Method_t
@@ -56,6 +56,12 @@ static inline IMP method_getImplementation(Method method) {
 }
 static inline Class object_getClass(id obj) {
   return obj ? obj->class_pointer : Nil;
+}
+static inline Class class_getSuperclass(Class cls) {
+  return cls ? cls->super_class : Nil;
+}
+static inline Method class_getClassMethod(Class cls, SEL sel) {
+  return cls ? class_get_class_method(cls->class_pointer, sel) : NULL;
 }
 
 Class objc_getMetaClass(const char *name);
