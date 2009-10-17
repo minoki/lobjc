@@ -30,6 +30,12 @@ static const char tname_Method[] = "objc:Method";
 static const char tname_Ivar[] = "objc:Ivar";
 
 static void pushid_impl (lua_State *L, id obj, bool retain, bool try_method) {
+#if defined(GNU_RUNTIME)
+  // In GNU runtime, you die if you send a message to a metaclass
+  bool is_meta_class = class_isMetaClass(obj);
+  try_method = try_method && !is_meta_class;
+  retain = retain && !is_meta_class;
+#endif
   if (obj == nil) {
     lua_pushnil(L); // TODO: reconsider this behavior
   } else if (try_method && [obj respondsToSelector: @selector(lobjc_pushLuaValue:)]
@@ -115,7 +121,14 @@ LUALIB_API id lobjc_rawtoid (lua_State *L, int idx) {
 static int id_gc (lua_State *L) {
   id *p = (id *)lua_touserdata(L, 1);
   if (*p != nil) {
-    [*p release];
+#if defined(GNU_RUNTIME)
+    // In GNU runtime, you die if you send a message to a metaclass
+    bool is_meta_class = class_isMetaClass(*p);
+    if (!is_meta_class)
+#endif
+    {
+      [*p release];
+    }
     *p = nil;
   }
   return 0;
