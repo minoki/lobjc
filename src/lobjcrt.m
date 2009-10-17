@@ -592,6 +592,35 @@ static void setupautoreleasepool (lua_State *L) {
   lua_setfield(L, LUA_REGISTRYINDEX, "lobjc:autoreleasepool");
 }
 
+static void setplatforminfo (lua_State *L) {
+  lua_pushinteger(L, sizeof(void *));
+  lua_setfield(L, -2, "_PTRSIZE");
+
+#if defined(__BIG_ENDIAN__)
+  lua_pushliteral(L, "big");
+#elif defined(__LITTLE_ENDIAN__)
+  lua_pushliteral(L, "little");
+#else
+# error "unknown endian"
+#endif
+  lua_setfield(L, -2, "_ENDIAN");
+
+#if defined(__NEXT_RUNTIME__)
+  lua_pushliteral(L, "next");
+  lua_setfield(L, -2, "_RUNTIME");
+#elif defined(GNU_RUNTIME)
+  lua_pushliteral(L, "gnu");
+  lua_setfield(L, -2, "_RUNTIME");
+#else
+#error "unknown Objective-C runtime"
+#endif
+
+#if defined(GNUSTEP)
+  lua_pushboolean(L, 1);
+  lua_setfield(L, -2, "_GNUSTEP");
+#endif
+}
+
 LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   assert(run_simple_test(L));
 
@@ -619,17 +648,7 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   luaL_getmetatable(L, tname_id);
   lua_setfield(L, -2, "__id_metatable");
 
-  lua_pushinteger(L, sizeof(void *));
-  lua_setfield(L, -2, "_PTRSIZE");
-
-#if defined(__BIG_ENDIAN__)
-  lua_pushliteral(L, "big");
-#elif defined(__LITTLE_ENDIAN__)
-  lua_pushliteral(L, "little");
-#else
-# error "unknown endian"
-#endif
-  lua_setfield(L, -2, "_ENDIAN");
+  setplatforminfo(L);
 
   lua_pushcfunction(L, luaopen_objc_runtime_struct);
   lua_call(L, 0, 0);
