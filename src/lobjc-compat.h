@@ -8,7 +8,7 @@
 
 #if defined(__NEXT_RUNTIME__)
 
-#else /* GNU runtime */
+#elif defined(GNU_RUNTIME)
 
 #include <stdint.h>
 #include <objc/objc-api.h>
@@ -71,6 +71,10 @@ BOOL  class_addIvar(Class cls, const char *name, size_t size, uint8_t alignment,
 Ivar  class_getInstanceVariable(Class cls, const char *name);
 BOOL  class_addMethod(Class cls, SEL name, IMP imp, const char *types);
 void  method_exchangeImplementations(Method m1, Method m2);
+
+#else
+
+#error "unknown Objective-C runtime"
 
 #endif /* NeXT runtime / GNU runtime */
 

@@ -11,8 +11,10 @@
 
 #if defined(__NEXT_RUNTIME__)
 #include <objc/runtime.h>
-#else /* GNU runtime */
+#elif defined(GNU_RUNTIME)
 #include "lobjc-compat.h"
+#else
+#error "unknown Objective-C runtime"
 #endif
 #import <lua.h>
 #import <lauxlib.h>

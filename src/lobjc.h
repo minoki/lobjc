@@ -11,8 +11,10 @@
 #include <objc/objc.h>
 #if defined(__NEXT_RUNTIME__)
 #include <objc/runtime.h>
-#else /* GNU runtime */
+#elif defined(GNU_RUNTIME)
 #include "lobjc-compat.h"
+#else
+#error "unknown Objective-C runtime"
 #endif
 
 LUALIB_API void lobjc_pushid (lua_State *L, id obj);

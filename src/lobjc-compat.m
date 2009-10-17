@@ -5,7 +5,7 @@
 
 #include "lobjc-compat.h"
 
-#if !defined(__NEXT_RUNTIME__) /* GNU runtime */
+#if defined(GNU_RUNTIME)
 
 Class objc_getMetaClass(const char *name) {
   return class_get_meta_class(objc_get_class(name));
