@@ -198,6 +198,11 @@ static int lobjc_objc_getMetaClass (lua_State *L) { /** objc_getMetaClass(name) 
   return 1;
 }
 
+static int lobjc_objc_getProtocol (lua_State *L) { /** objc_getProtocol(name) */
+  lobjc_pushid(L, objc_getProtocol(luaL_checkstring(L, 1)));
+  return 1;
+}
+
 static int lobjc_object_getClass (lua_State *L) { /** object_getClass(obj) */
   lobjc_pushclass(L, object_getClass(lobjc_toid(L, 1)));
   return 1;
@@ -338,6 +343,13 @@ static int lobjc_class_respondsToSelector (lua_State *L) { /** class_respondsToS
   Class cls = lobjc_toclass(L, 1);
   SEL sel = lobjc_checkselector(L, 2);
   lua_pushboolean(L, class_respondsToSelector(cls, sel));
+  return 1;
+}
+
+static int lobjc_class_addProtocol (lua_State *L) { /** class_addProtocol(cls,protocol) */
+  Class cls = lobjc_toclass(L, 1);
+  Protocol *protocol = lobjc_toid(L, 2);
+  lua_pushboolean(L, class_addProtocol(cls, protocol));
   return 1;
 }
 
@@ -566,6 +578,7 @@ static const luaL_Reg funcs[] = {
   {"objc_lookUpClass",            lobjc_objc_lookUpClass},
   {"objc_getClass",               lobjc_objc_getClass},
   {"objc_getMetaClass",           lobjc_objc_getMetaClass},
+  {"objc_getProtocol",            lobjc_objc_getProtocol},
   {"object_getClass",             lobjc_object_getClass},
   {"object_getClassName",         lobjc_object_getClassName},
   {"object_setClass",             lobjc_object_setClass},
@@ -580,6 +593,7 @@ static const luaL_Reg funcs[] = {
   {"class_getClassMethod",        lobjc_class_getClassMethod},
   {"class_isMetaClass",           lobjc_class_isMetaClass},
   {"class_respondsToSelector",    lobjc_class_respondsToSelector},
+  {"class_addProtocol",           lobjc_class_addProtocol},
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},

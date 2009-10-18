@@ -65,6 +65,7 @@ static inline Method class_getClassMethod(Class cls, SEL sel) {
 }
 
 Class objc_getMetaClass(const char *name);
+Protocol *objc_getProtocol(const char *name);
 Class objc_allocateClassPair(Class superclass, const char *name, size_t extraBytes);
 void  objc_registerClassPair(Class cls);
 Class object_setClass(id obj, Class cls);
@@ -76,6 +77,7 @@ BOOL  class_respondsToSelector(Class cls, SEL sel);
 BOOL  class_addIvar(Class cls, const char *name, size_t size, uint8_t alignment, const char *types);
 Ivar  class_getInstanceVariable(Class cls, const char *name);
 BOOL  class_addMethod(Class cls, SEL name, IMP imp, const char *types);
+BOOL  class_addProtocol(Class cls, Protocol *protocol);
 void  method_exchangeImplementations(Method m1, Method m2);
 
 #else

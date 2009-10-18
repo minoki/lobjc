@@ -11,6 +11,11 @@ Class objc_getMetaClass(const char *name) {
   return class_get_meta_class(objc_get_class(name));
 }
 
+Protocol *objc_getProtocol(const char *name) {
+  // NOT IMPLEMENTED YET
+  return nil;
+}
+
 Class objc_allocateClassPair(Class superclass, const char *name, size_t extraBytes) {
   // NOT IMPLEMENTED YET
   return Nil;
@@ -105,6 +110,11 @@ Ivar class_getInstanceVariable(Class cls, const char *name) {
 }
 
 BOOL class_addMethod(Class cls, SEL name, IMP imp, const char *types) {
+  // NOT IMPLEMENTED YET
+  return NO;
+}
+
+BOOL class_addProtocol(Class cls, Protocol *protocol) {
   // NOT IMPLEMENTED YET
   return NO;
 }
