@@ -590,6 +590,14 @@ method_setImplementation
 method_getImplementation
 */
 
+static const luaL_Reg sublibs[] = {
+  {"objc.runtime.struct", luaopen_objc_runtime_struct},
+  {"objc.runtime.ffi", luaopen_objc_runtime_ffi},
+  {"objc.runtime.pointer", luaopen_objc_runtime_pointer},
+  {"objc.runtime.bridgesupport", luaopen_objc_runtime_bridgesupport},
+  {NULL, NULL}
+};
+
 static void initcache (lua_State *L, const char *name, const char *mode) {
   lua_newtable(L);
   lua_pushstring(L, mode);
@@ -663,17 +671,11 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
 
   setplatforminfo(L);
 
-  lua_pushcfunction(L, luaopen_objc_runtime_struct);
-  lua_call(L, 0, 0);
-
-  lua_pushcfunction(L, luaopen_objc_runtime_ffi);
-  lua_call(L, 0, 0);
-
-  lua_pushcfunction(L, luaopen_objc_runtime_pointer);
-  lua_call(L, 0, 0);
-
-  lua_pushcfunction(L, luaopen_objc_runtime_bridgesupport);
-  lua_call(L, 0, 0);
+  for (const luaL_Reg *lib = sublibs; lib->func; ++lib) {
+    lua_pushcfunction(L, lib->func);
+    lua_pushstring(L, lib->name);
+    lua_call(L, 1, 0);
+  }
 
   return 1;
 }
