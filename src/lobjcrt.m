@@ -29,6 +29,20 @@ static const char tname_id[] = "objc:id";
 static const char tname_Method[] = "objc:Method";
 static const char tname_Ivar[] = "objc:Ivar";
 
+void lobjc_pushselector (lua_State *L, SEL sel) {
+  lua_pushstring(L, sel_getName(sel));
+}
+SEL lobjc_checkselector (lua_State *L, int n) {
+  return sel_registerName(luaL_checkstring(L, n));
+}
+void lobjc_pushclass (lua_State *L, Class cls) {
+  lobjc_pushid(L, cls);
+}
+Class lobjc_toclass (lua_State *L, int idx) {
+  id o = lobjc_toid(L, idx);
+  return class_isMetaClass(object_getClass(o)) ? (Class)o : Nil;
+}
+
 static void pushid_impl (lua_State *L, id obj, bool retain, bool try_method) {
 #if defined(GNU_RUNTIME)
   // In GNU runtime, you die if you send a message to a metaclass
