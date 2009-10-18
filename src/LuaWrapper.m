@@ -15,7 +15,7 @@ static id sel_to_id (SEL sel) {
   return [NSValue value: &sel withObjCType: @encode(SEL)];
 }
 
-@implementation LuaWrapper
+@implementation lobjc_LuaValueWrapper
 
 - (id)initWithLuaState:(lua_State *)L {
   self = [super init];

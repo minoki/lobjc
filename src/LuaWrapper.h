@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <Foundation/Foundation.h>
 
-@interface LuaWrapper : NSObject {
+@interface lobjc_LuaValueWrapper : NSObject {
   lua_State *L_state;
   int ref;
   NSMutableDictionary *methods;

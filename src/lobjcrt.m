@@ -101,7 +101,7 @@ LUALIB_API id lobjc_toid (lua_State *L, int idx) {
     return nil;
   }
   lua_pushvalue(L, idx);
-  return [[[LuaWrapper alloc] initWithLuaState: L] autorelease];
+  return [[[lobjc_LuaValueWrapper alloc] initWithLuaState: L] autorelease];
 }
 
 LUALIB_API id lobjc_rawtoid (lua_State *L, int idx) {
