@@ -159,3 +159,23 @@ function implement_informal_protocol(o,name)
 end
 
 
+do
+  local Method_meta = runtime.__Method_metatable
+  Method_meta.__index = Method_meta
+  Method_meta.getName = runtime.method_getName
+  Method_meta.getNumberOfArguments = runtime.method_getNumberOfArguments
+  Method_meta.getTypeEncoding = runtime.method_getTypeEncoding
+  function Method_meta:__tostring()
+    return string.format("Method '%s' <%s>", self:getName(), self:getTypeEncoding())
+  end
+  local Ivar_meta = runtime.__Ivar_metatable
+  Ivar_meta.__index = Ivar_meta
+  Ivar_meta.getName = runtime.ivar_getName
+  Ivar_meta.getTypeEncoding = runtime.ivar_getTypeEncoding
+  Ivar_meta.getOffset = runtime.ivar_getOffset
+  function Ivar_meta:__tostring()
+    return string.format("Ivar '%s' <%s>", self:getName(), self:getTypeEncoding())
+  end
+end
+
+

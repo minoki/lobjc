@@ -799,6 +799,12 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   luaL_getmetatable(L, tname_id);
   lua_setfield(L, -2, "__id_metatable");
 
+  luaL_getmetatable(L, tname_Method);
+  lua_setfield(L, -2, "__Method_metatable");
+
+  luaL_getmetatable(L, tname_Ivar);
+  lua_setfield(L, -2, "__Ivar_metatable");
+
   setplatforminfo(L);
 
   for (const luaL_Reg *lib = sublibs; lib->func; ++lib) {
