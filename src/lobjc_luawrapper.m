@@ -3,7 +3,7 @@
 ** See file COPYRIGHT for more information
 */
 
-#import "LuaWrapper.h"
+#import "lobjc_luawrapper.h"
 #import "lobjc.h"
 #import "lobjc_invoke.h"
 #import <lua.h>

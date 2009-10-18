@@ -30,7 +30,7 @@ OBJS= \
   lobjc_pointer.o \
   lobjc_bridgesupport.o \
   typeencoding.o \
-  LuaWrapper.o \
+  lobjc_luawrapper.o \
   simplecheck.o \
   lobjc-compat.o
 SO= objc.so

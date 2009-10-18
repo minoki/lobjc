@@ -7,7 +7,7 @@
 #import "lobjc_invoke.h"
 #import "lobjc_convert.h"
 #import "typeencoding.h"
-#import "LuaWrapper.h"
+#import "lobjc_luawrapper.h"
 
 #if defined(__NEXT_RUNTIME__)
 #include <objc/runtime.h>
