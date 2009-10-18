@@ -93,13 +93,15 @@ Ivar class_getInstanceVariable(Class cls, const char *name) {
     return NULL;
   }
   struct objc_ivar_list *ivars = cls->ivars;
-  for (int i = 0; i < ivars->ivar_count; ++i) {
-    struct objc_ivar *ivar = &ivars->ivar_list[i];
-    if (strcmp(ivar->ivar_name, name) == 0) {
-      return ivar;
+  if (ivars) {
+    for (int i = 0; i < ivars->ivar_count; ++i) {
+      struct objc_ivar *ivar = &ivars->ivar_list[i];
+      if (strcmp(ivar->ivar_name, name) == 0) {
+        return ivar;
+      }
     }
   }
-  return NULL;
+  return class_getInstanceVariable(cls->super_class, name);
 }
 
 BOOL class_addMethod(Class cls, SEL name, IMP imp, const char *types) {

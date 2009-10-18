@@ -376,6 +376,11 @@ static int lobjc_ivar_getTypeEncoding (lua_State *L) { /** ivar_getTypeEncoding(
   return 1;
 }
 
+static int lobjc_ivar_getOffset (lua_State *L) { /** ivar_getOffset(ivar) */
+  lua_pushinteger(L, ivar_getOffset(lobjc_toptr(L, 1, tname_Ivar)));
+  return 1;
+}
+
 
 
 static const char *lobjc_method_getTypeEncoding_ex (lua_State *L, Class class, SEL sel, Method method) {
@@ -581,6 +586,7 @@ static const luaL_Reg funcs[] = {
   {"method_exchangeImplementations", lobjc_method_exchangeImplementations},
   {"ivar_getName",                lobjc_ivar_getName},
   {"ivar_getTypeEncoding",        lobjc_ivar_getTypeEncoding},
+  {"ivar_getOffset",              lobjc_ivar_getOffset},
 
   {"invoke", lobjc_invoke},
   {"invokewithclass", lobjc_invokewithclass},
