@@ -78,6 +78,9 @@ BOOL  class_addIvar(Class cls, const char *name, size_t size, uint8_t alignment,
 Ivar  class_getInstanceVariable(Class cls, const char *name);
 BOOL  class_addMethod(Class cls, SEL name, IMP imp, const char *types);
 BOOL  class_addProtocol(Class cls, Protocol *protocol);
+Ivar *class_copyIvarList(Class cls, unsigned int *outCount);
+Method *class_copyMethodList(Class cls, unsigned int *outCount);
+Protocol **class_copyProtocolList(Class cls, unsigned int *outCount);
 void  method_exchangeImplementations(Method m1, Method m2);
 
 #else

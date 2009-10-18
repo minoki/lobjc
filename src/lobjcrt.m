@@ -353,6 +353,98 @@ static int lobjc_class_addProtocol (lua_State *L) { /** class_addProtocol(cls,pr
   return 1;
 }
 
+struct copyXXXList_aux_params {
+  unsigned int count;
+  void *list;
+};
+
+static int lobjc_class_copyIvarList_aux (lua_State *L) {
+  struct copyXXXList_aux_params *params = lua_touserdata(L, 1);
+  Ivar *ivars = params->list;
+  lua_createtable(L, params->count, 0);
+  for (unsigned int i = 0; i < params->count; ++i) {
+    lobjc_pushptr(L, ivars[i], tname_Ivar, "lobjc:Ivar_cache");
+    lua_rawseti(L, -2, i+1);
+  }
+  return 1;
+}
+
+static int lobjc_class_copyIvarList (lua_State *L) { /** class_copyIvarList(cls) */
+  Class cls = lobjc_toclass(L, 1);
+  struct copyXXXList_aux_params params = {0, NULL};
+
+  lua_pushcfunction(L, lobjc_class_copyIvarList_aux);
+  lua_pushlightuserdata(L, &params);
+
+  Ivar *ivars = class_copyIvarList(cls, &params.count);
+  params.list = ivars;
+  int err = lua_pcall(L, 1, 1, 0);
+  free(ivars);
+
+  if (err) {
+    return lua_error(L);
+  }
+  return 1;
+}
+
+static int lobjc_class_copyMethodList_aux (lua_State *L) {
+  struct copyXXXList_aux_params *params = lua_touserdata(L, 1);
+  Method *methods = params->list;
+  lua_createtable(L, params->count, 0);
+  for (unsigned int i = 0; i < params->count; ++i) {
+    lobjc_pushptr(L, methods[i], tname_Method, "lobjc:Method_cache");
+    lua_rawseti(L, -2, i+1);
+  }
+  return 1;
+}
+
+static int lobjc_class_copyMethodList (lua_State *L) { /** class_copyMethodList(cls) */
+  Class cls = lobjc_toclass(L, 1);
+  struct copyXXXList_aux_params params = {0, NULL};
+
+  lua_pushcfunction(L, lobjc_class_copyMethodList_aux);
+  lua_pushlightuserdata(L, &params);
+
+  Method *methods = class_copyMethodList(cls, &params.count);
+  params.list = methods;
+  int err = lua_pcall(L, 1, 1, 0);
+  free(methods);
+
+  if (err) {
+    return lua_error(L);
+  }
+  return 1;
+}
+
+static int lobjc_class_copyProtocolList_aux (lua_State *L) {
+  struct copyXXXList_aux_params *params = lua_touserdata(L, 1);
+  Protocol **protocols = params->list;
+  lua_createtable(L, params->count, 0);
+  for (unsigned int i = 0; i < params->count; ++i) {
+    lobjc_pushid(L, protocols[i]);
+    lua_rawseti(L, -2, i+1);
+  }
+  return 1;
+}
+
+static int lobjc_class_copyProtocolList (lua_State *L) { /** class_copyProtocolList(cls) */
+  Class cls = lobjc_toclass(L, 1);
+  struct copyXXXList_aux_params params = {0, NULL};
+
+  lua_pushcfunction(L, lobjc_class_copyProtocolList_aux);
+  lua_pushlightuserdata(L, &params);
+
+  Protocol **protocols = class_copyProtocolList(cls, &params.count);
+  params.list = protocols;
+  int err = lua_pcall(L, 1, 1, 0);
+  free(protocols);
+
+  if (err) {
+    return lua_error(L);
+  }
+  return 1;
+}
+
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
   Method method = lobjc_toptr(L, 1, tname_Method);
   lobjc_pushselector(L, method_getName(method));
@@ -594,6 +686,9 @@ static const luaL_Reg funcs[] = {
   {"class_isMetaClass",           lobjc_class_isMetaClass},
   {"class_respondsToSelector",    lobjc_class_respondsToSelector},
   {"class_addProtocol",           lobjc_class_addProtocol},
+  {"class_copyIvarList",          lobjc_class_copyIvarList},
+  {"class_copyMethodList",        lobjc_class_copyMethodList},
+  {"class_copyProtocolList",      lobjc_class_copyProtocolList},
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},

@@ -119,6 +119,107 @@ BOOL class_addProtocol(Class cls, Protocol *protocol) {
   return NO;
 }
 
+Ivar *class_copyIvarList(Class cls, unsigned int *outCount) {
+  if (cls == Nil) {
+    return NULL;
+  }
+  unsigned int count = 0;
+  struct objc_ivar_list *ivars = cls->ivars;
+  if (ivars) {
+    count = ivars->ivar_count;
+  }
+  if (outCount) {
+    *outCount = count;
+  }
+  if (count == 0) {
+    return NULL;
+  }
+  Ivar *copied_ivars = malloc(sizeof(Ivar)*(count+1));
+  if (!copied_ivars) {
+    return NULL;
+  }
+  {
+    Ivar *curr = copied_ivars;
+    for (int i = 0; i < ivars->ivar_count; ++i) {
+      *curr++ = &ivars->ivar_list[i];
+    }
+    *curr = NULL;
+  }
+  return copied_ivars;
+}
+
+Method *class_copyMethodList(Class cls, unsigned int *outCount) {
+  if (cls == Nil) {
+    return NULL;
+  }
+  unsigned int count = 0;
+  {
+    struct objc_method_list *methods = cls->methods;
+    while (methods) {
+      count += methods->method_count;
+      methods = methods->method_next;
+    }
+  }
+  if (outCount) {
+    *outCount = count;
+  }
+  if (count == 0) {
+    return NULL;
+  }
+  Method *copied_methods = malloc(sizeof(Method)*(count+1));
+  if (!copied_methods) {
+    return NULL;
+  }
+  {
+    struct objc_method_list *methods = cls->methods;
+    Method *curr = copied_methods;
+    while (methods) {
+      for (int i = 0; i < methods->method_count; ++i) {
+        *curr++ = &methods->method_list[i];
+      }
+      methods = methods->method_next;
+    }
+    *curr = NULL;
+  }
+  return copied_methods;
+}
+
+Protocol **class_copyProtocolList(Class cls, unsigned int *outCount) {
+  if (cls == Nil) {
+    return NULL;
+  }
+  unsigned int count = 0;
+  {
+    struct objc_protocol_list *protocols = cls->protocols;
+    while (protocols) {
+      count += protocols->count;
+      protocols = protocols->next;
+    }
+  }
+  if (outCount) {
+    *outCount = count;
+  }
+  if (count == 0) {
+    return NULL;
+  }
+  Protocol **copied_protocols = malloc(sizeof(Protocol *)*(count+1));
+  if (!copied_protocols) {
+    return NULL;
+  }
+  {
+    struct objc_protocol_list *protocols = cls->protocols;
+    Protocol **curr = copied_protocols;
+    while (protocols) {
+      for (int i = 0; i < protocols->count; ++i) {
+        *curr++ = protocols->list[i];
+      }
+      protocols = protocols->next;
+    }
+    *curr = NULL;
+  }
+  return copied_protocols;
+}
+
 void method_exchangeImplementations(Method m1, Method m2) {
   IMP tmp = m1->method_imp;
   m1->method_imp = m2->method_imp;
