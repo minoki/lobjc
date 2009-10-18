@@ -668,7 +668,8 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   initcache(L, "lobjc:id_cache", "v");
   initcache(L, "lobjc:Method_cache", "v");
   initcache(L, "lobjc:Ivar_cache", "v");
-  initcache(L, "lobjc:wrapper_cache", "k");
+  initcache(L, "lobjc:wrapper_cache", "kv");
+  initcache(L, "lobjc:wrapperinfo", "k");
 
   luaL_newmetatable(L, tname_id);
   luaL_register(L, NULL, idfuncs);

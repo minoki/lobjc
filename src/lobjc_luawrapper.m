@@ -22,6 +22,63 @@ static id sel_to_id (SEL sel) {
   return [NSValue value: &sel withObjCType: @encode(SEL)];
 }
 
+@interface lobjc_LuaValueWrapperInfo : NSObject {
+@public
+  NSMutableDictionary *methods;
+}
+
++ (id)wrapperInfoWithLuaState:(lua_State *)L;
+
+- (void)lobjc_addMethod:(SEL)sel type:(const char *)type;
+
+@end
+
+@implementation lobjc_LuaValueWrapperInfo
+
++ (id)wrapperInfoWithLuaState:(lua_State *)L {
+  lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:wrapperinfo");
+  lua_pushvalue(L, -2); // the lua value
+  lua_gettable(L, -2);
+  id a = lobjc_toid(L, -1);
+  if (a) {
+    lua_pop(L, 2); // pop fetched value and registry["lobjc:wrapperinfo"]
+    return a;
+  } else {
+    a = [self new];
+    lua_pop(L, 1); // pop fetched value
+    lua_pushvalue(L, -2); // the lua value
+    lobjc_pushid_noretain(L, a);
+    lua_settable(L, -3);
+    lua_pop(L, 1); // pop registry["lobjc:wrapperinfo"]
+    return a;
+  }
+}
+
+- (id)init {
+  self = [super init];
+  if (self) {
+    methods = [NSMutableDictionary new];
+    if (!methods) {
+      [self release];
+      return nil;
+    }
+  }
+  return self;
+}
+
+- (void)dealloc {
+  [methods release];
+  [super dealloc];
+}
+
+- (void)lobjc_addMethod:(SEL)sel type:(const char *)type {
+  [methods setObject: [NSMethodSignature signatureWithObjCTypes: type]
+              forKey: sel_to_id(sel)];
+}
+
+@end
+
+
 @implementation lobjc_LuaValueWrapper
 
 - (id)initWithLuaState:(lua_State *)L {
@@ -32,15 +89,15 @@ static id sel_to_id (SEL sel) {
       return nil;
     }
     L_state = L;
-    methods = [NSMutableDictionary new];
-    if (!methods) {
+    info = [[lobjc_LuaValueWrapperInfo wrapperInfoWithLuaState: L] retain];
+    if (!info) {
       [self release];
       return nil;
     }
     lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:wrapper_cache");
-    lua_pushvalue(L, -2);
+    lua_pushvalue(L, -2); // the lua value
     lua_gettable(L, -2);
-    id a = (id)lua_touserdata(L, -1);
+    id a = lobjc_toid(L, -1);
     if (a) {
       lua_pop(L, 3); // pop fetched value and registry["lobjc:wrapper_cache"]
       [a retain];
@@ -48,8 +105,8 @@ static id sel_to_id (SEL sel) {
       return a;
     } else {
       lua_pop(L, 1); // pop fetched value
-      lua_pushvalue(L, -2);
-      lua_pushlightuserdata(L, self);
+      lua_pushvalue(L, -2); // the lua value
+      lobjc_rawpushid(L, self);
       lua_settable(L, -3);
       lua_pop(L, 1); // pop registry["lobjc:wrapper_cache"]
       ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -63,7 +120,7 @@ static id sel_to_id (SEL sel) {
   if (L_state && ref != LUA_REFNIL) {
     luaL_unref(L_state, LUA_REGISTRYINDEX, ref);
   }
-  [methods release];
+  [info release];
   [super dealloc];
 }
 
@@ -80,8 +137,7 @@ static id sel_to_id (SEL sel) {
 }
 
 - (void)lobjc_addMethod:(SEL)sel type:(const char *)type {
-  [methods setObject: [NSMethodSignature signatureWithObjCTypes: type]
-              forKey: sel_to_id(sel)];
+  [info lobjc_addMethod:sel type:type];
 }
 
 struct rts_params {
@@ -100,7 +156,7 @@ static int respondsToSelector_aux (lua_State *L) {
 }
 
 - (BOOL)respondsToSelector:(SEL)sel {
-  if ([methods objectForKey: sel_to_id(sel)]) {
+  if ([info->methods objectForKey: sel_to_id(sel)]) {
     struct rts_params params = {.ref=ref, .name = sel_getName(sel), .result = NO};
     if (lua_cpcall(L_state, respondsToSelector_aux, &params)) {
       lua_pop(L_state, 1);
@@ -112,7 +168,7 @@ static int respondsToSelector_aux (lua_State *L) {
 }
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)sel {
-  id m = [methods objectForKey: sel_to_id(sel)];
+  id m = [info->methods objectForKey: sel_to_id(sel)];
   return m ? m : [super methodSignatureForSelector: sel];
 }
 

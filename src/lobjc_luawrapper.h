@@ -12,10 +12,12 @@
 #include <stdbool.h>
 #include <Foundation/Foundation.h>
 
+@class lobjc_LuaValueWrapperInfo;
+
 @interface lobjc_LuaValueWrapper : NSObject {
   lua_State *L_state;
   int ref;
-  NSMutableDictionary *methods;
+  lobjc_LuaValueWrapperInfo *info;
 }
 
 // initialize with the value at the top of the stack
