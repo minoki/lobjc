@@ -10,6 +10,13 @@
 #import <lauxlib.h>
 #import <stdbool.h>
 #import <Foundation/Foundation.h>
+#if defined(__NEXT_RUNTIME__)
+#include <objc/runtime.h>
+#elif defined(GNU_RUNTIME)
+#include "lobjc-compat.h"
+#else
+#error "unknown Objective-C runtime"
+#endif
 
 static id sel_to_id (SEL sel) {
   return [NSValue value: &sel withObjCType: @encode(SEL)];
