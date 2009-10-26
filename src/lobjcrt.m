@@ -378,6 +378,13 @@ static int lobjc_class_addProtocol (lua_State *L) { /** class_addProtocol(cls,pr
   return 1;
 }
 
+static int lobjc_class_conformsToProtocol (lua_State *L) { /** class_conformsToProtocol(cls,protocol) */
+  Class cls = lobjc_toclass(L, 1);
+  Protocol *protocol = lobjc_toid(L, 2);
+  lua_pushboolean(L, class_conformsToProtocol(cls, protocol));
+  return 1;
+}
+
 struct copyXXXList_aux_params {
   unsigned int count;
   void *list;
@@ -712,6 +719,7 @@ static const luaL_Reg funcs[] = {
   {"class_isMetaClass",           lobjc_class_isMetaClass},
   {"class_respondsToSelector",    lobjc_class_respondsToSelector},
   {"class_addProtocol",           lobjc_class_addProtocol},
+  {"class_conformsToProtocol",    lobjc_class_conformsToProtocol},
   {"class_copyIvarList",          lobjc_class_copyIvarList},
   {"class_copyMethodList",        lobjc_class_copyMethodList},
   {"class_copyProtocolList",      lobjc_class_copyProtocolList},
