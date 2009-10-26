@@ -477,6 +477,11 @@ static int lobjc_class_copyProtocolList (lua_State *L) { /** class_copyProtocolL
   return 1;
 }
 
+static int lobjc_class_getInstanceSize (lua_State *L) { /** class_getInstanceSize(cls) */
+  lua_pushnumber(L, class_getInstanceSize(lobjc_toclass(L, 1)));
+  return 1;
+}
+
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
   Method method = lobjc_toptr(L, 1, tname_Method);
   lobjc_pushselector(L, method_getName(method));
@@ -723,6 +728,7 @@ static const luaL_Reg funcs[] = {
   {"class_copyIvarList",          lobjc_class_copyIvarList},
   {"class_copyMethodList",        lobjc_class_copyMethodList},
   {"class_copyProtocolList",      lobjc_class_copyProtocolList},
+  {"class_getInstanceSize",       lobjc_class_getInstanceSize},
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},
