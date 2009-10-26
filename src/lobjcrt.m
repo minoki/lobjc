@@ -333,7 +333,7 @@ static int lobjc_class_getName (lua_State *L) { /** class_getName(cls) */
   return 1;
 }
 
-static int lobjc_class_getSuperclass (lua_State *L) { /** class_getSuperClass(cls) */
+static int lobjc_class_getSuperclass (lua_State *L) { /** class_getSuperclass(cls) */
   lobjc_pushclass(L, class_getSuperclass(lobjc_toclass(L, 1)));
   return 1;
 }
@@ -717,7 +717,7 @@ static const luaL_Reg funcs[] = {
   {"object_getInstanceVariable",  lobjc_object_getInstanceVariable},
   {"object_setInstanceVariable",  lobjc_object_setInstanceVariable},
   {"class_getName",               lobjc_class_getName},
-  {"class_getSuperClass",         lobjc_class_getSuperclass},
+  {"class_getSuperclass",         lobjc_class_getSuperclass},
   {"class_getInstanceVariable",   lobjc_class_getInstanceVariable},
   {"class_getInstanceMethod",     lobjc_class_getInstanceMethod},
   {"class_getClassMethod",        lobjc_class_getClassMethod},
