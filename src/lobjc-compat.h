@@ -68,6 +68,7 @@ Class objc_getMetaClass(const char *name);
 Protocol *objc_getProtocol(const char *name);
 Class objc_allocateClassPair(Class superclass, const char *name, size_t extraBytes);
 void  objc_registerClassPair(Class cls);
+int   objc_getClassList(Class *buffer, int bufferLen);
 Class object_setClass(id obj, Class cls);
 Ivar  object_getInstanceVariable(id obj, const char *name, void **outValue);
 Ivar  object_setInstanceVariable(id obj, const char *name, void *value);
@@ -78,6 +79,7 @@ BOOL  class_addIvar(Class cls, const char *name, size_t size, uint8_t alignment,
 Ivar  class_getInstanceVariable(Class cls, const char *name);
 BOOL  class_addMethod(Class cls, SEL name, IMP imp, const char *types);
 BOOL  class_addProtocol(Class cls, Protocol *protocol);
+BOOL  class_conformsToProtocol(Class cls, Protocol *protocol);
 Ivar *class_copyIvarList(Class cls, unsigned int *outCount);
 Method *class_copyMethodList(Class cls, unsigned int *outCount);
 Protocol **class_copyProtocolList(Class cls, unsigned int *outCount);

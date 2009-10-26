@@ -203,6 +203,31 @@ static int lobjc_objc_getProtocol (lua_State *L) { /** objc_getProtocol(name) */
   return 1;
 }
 
+static bool class_conformsToProtocol_r(Class cls, Protocol *protocol) {
+  if (cls == Nil) {
+    return false;
+  } else if (class_conformsToProtocol(cls, protocol)) {
+    return true;
+  } else {
+    return class_conformsToProtocol_r(class_getSuperclass(cls), protocol);
+  }
+}
+
+static int lobjc_objc_getClassList (lua_State *L) { /** objc_getClassList() */
+  int n = objc_getClassList(NULL, 0);
+  Class *buffer = lua_newuserdata(L, sizeof(Class)*n);
+  objc_getClassList(buffer, n);
+  lua_createtable(L, n, 0);
+  int c = 1;
+  for (int i = 0; i < n; ++i) {
+    if (class_conformsToProtocol_r(buffer[i], @protocol(NSObject))) {
+      lobjc_pushclass(L, buffer[i]);
+      lua_rawseti(L, -2, c++);
+    }
+  }
+  return 1;
+}
+
 static int lobjc_object_getClass (lua_State *L) { /** object_getClass(obj) */
   lobjc_pushclass(L, object_getClass(lobjc_toid(L, 1)));
   return 1;
@@ -671,6 +696,7 @@ static const luaL_Reg funcs[] = {
   {"objc_getClass",               lobjc_objc_getClass},
   {"objc_getMetaClass",           lobjc_objc_getMetaClass},
   {"objc_getProtocol",            lobjc_objc_getProtocol},
+  {"objc_getClassList",           lobjc_objc_getClassList},
   {"object_getClass",             lobjc_object_getClass},
   {"object_getClassName",         lobjc_object_getClassName},
   {"object_setClass",             lobjc_object_setClass},

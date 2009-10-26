@@ -7,6 +7,8 @@
 
 #if defined(GNU_RUNTIME)
 
+#include <objc/Protocol.h>
+
 Class objc_getMetaClass(const char *name) {
   return class_get_meta_class(objc_get_class(name));
 }
@@ -23,6 +25,19 @@ Class objc_allocateClassPair(Class superclass, const char *name, size_t extraByt
 
 void objc_registerClassPair(Class cls) {
   // NOT IMPLEMENTED YET
+}
+
+int objc_getClassList(Class *buffer, int bufferLen) {
+  Class cls;
+  void *state = NULL;
+  int n = 0;
+  while ((cls = objc_next_class(&state))) {
+    if (buffer && bufferLen > n) {
+      buffer[n] = cls;
+    }
+    ++n;
+  }
+  return n;
 }
 
 Class object_setClass(id obj, Class cls) {
@@ -116,6 +131,22 @@ BOOL class_addMethod(Class cls, SEL name, IMP imp, const char *types) {
 
 BOOL class_addProtocol(Class cls, Protocol *protocol) {
   // NOT IMPLEMENTED YET
+  return NO;
+}
+
+BOOL class_conformsToProtocol(Class cls, Protocol *protocol) {
+  if (cls == Nil || protocol == nil) {
+    return NO;
+  }
+  struct objc_protocol_list *protocols = cls->protocols;
+  while (protocols) {
+    for (size_t i = 0; i < protocols->count; ++i) {
+      if ([protocols->list[i] conformsTo:protocol]) {
+        return YES;
+      }
+    }
+    protocols = protocols->next;
+  }
   return NO;
 }
 
