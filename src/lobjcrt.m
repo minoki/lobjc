@@ -619,21 +619,6 @@ static int lobjc_overridesignature (lua_State *L) { /** overridesignature(method
   return 0;
 }
 
-static int lobjc_registerinformalprotocol (lua_State *L) { /** registerinformalprotocol(name) */
-  luaL_checktype(L, 1, LUA_TSTRING);
-  lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:informal_protocols");
-  lua_pushvalue(L, 1);
-  lua_gettable(L, -2);
-  if (lua_isnil(L, -1)) {
-    lua_pop(L, 1);
-    lua_newtable(L);
-    lua_pushvalue(L, -1);
-    lua_pushvalue(L, 1);
-    lua_settable(L, -4);
-  }
-  return 1;
-}
-
 static int lobjc_registermethod (lua_State *L) { /** registermethod(obj,name,type) */
   id obj = lobjc_toid(L, 1);
   SEL sel = lobjc_checkselector(L, 2);
@@ -741,7 +726,6 @@ static const luaL_Reg funcs[] = {
   {"invokewithclass", lobjc_invokewithclass},
   {"gettypeencoding_x", lobjc_gettypeencoding_x},
   {"overridesignature", lobjc_overridesignature},
-  {"registerinformalprotocol", lobjc_registerinformalprotocol},
   {"registermethod", lobjc_registermethod},
   {"createClass", lobjc_createClass},
   {"class_addMethod", lobjc_class_addMethod},
