@@ -333,7 +333,7 @@ static int lobjc_class_getName (lua_State *L) { /** class_getName(cls) */
   return 1;
 }
 
-static int lobjc_class_getSuperclass (lua_State *L) { /** class_getSuperClass(cls) */
+static int lobjc_class_getSuperclass (lua_State *L) { /** class_getSuperclass(cls) */
   lobjc_pushclass(L, class_getSuperclass(lobjc_toclass(L, 1)));
   return 1;
 }
@@ -482,6 +482,11 @@ static int lobjc_objc_copyProtocolList (lua_State *L) { /** objc_copyProtocolLis
   return err == 0 ? 1 : lua_error(L);
 }
 
+static int lobjc_class_getInstanceSize (lua_State *L) { /** class_getInstanceSize(cls) */
+  lua_pushnumber(L, class_getInstanceSize(lobjc_toclass(L, 1)));
+  return 1;
+}
+
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
   Method method = lobjc_toptr(L, 1, tname_Method);
   lobjc_pushselector(L, method_getName(method));
@@ -619,21 +624,6 @@ static int lobjc_overridesignature (lua_State *L) { /** overridesignature(method
   return 0;
 }
 
-static int lobjc_registerinformalprotocol (lua_State *L) { /** registerinformalprotocol(name) */
-  luaL_checktype(L, 1, LUA_TSTRING);
-  lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:informal_protocols");
-  lua_pushvalue(L, 1);
-  lua_gettable(L, -2);
-  if (lua_isnil(L, -1)) {
-    lua_pop(L, 1);
-    lua_newtable(L);
-    lua_pushvalue(L, -1);
-    lua_pushvalue(L, 1);
-    lua_settable(L, -4);
-  }
-  return 1;
-}
-
 static int lobjc_registermethod (lua_State *L) { /** registermethod(obj,name,type) */
   id obj = lobjc_toid(L, 1);
   SEL sel = lobjc_checkselector(L, 2);
@@ -718,7 +708,7 @@ static const luaL_Reg funcs[] = {
   {"object_getInstanceVariable",  lobjc_object_getInstanceVariable},
   {"object_setInstanceVariable",  lobjc_object_setInstanceVariable},
   {"class_getName",               lobjc_class_getName},
-  {"class_getSuperClass",         lobjc_class_getSuperclass},
+  {"class_getSuperclass",         lobjc_class_getSuperclass},
   {"class_getInstanceVariable",   lobjc_class_getInstanceVariable},
   {"class_getInstanceMethod",     lobjc_class_getInstanceMethod},
   {"class_getClassMethod",        lobjc_class_getClassMethod},
@@ -729,6 +719,7 @@ static const luaL_Reg funcs[] = {
   {"class_copyIvarList",          lobjc_class_copyIvarList},
   {"class_copyMethodList",        lobjc_class_copyMethodList},
   {"class_copyProtocolList",      lobjc_class_copyProtocolList},
+  {"class_getInstanceSize",       lobjc_class_getInstanceSize},
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},
@@ -741,7 +732,6 @@ static const luaL_Reg funcs[] = {
   {"invokewithclass", lobjc_invokewithclass},
   {"gettypeencoding_x", lobjc_gettypeencoding_x},
   {"overridesignature", lobjc_overridesignature},
-  {"registerinformalprotocol", lobjc_registerinformalprotocol},
   {"registermethod", lobjc_registermethod},
   {"createClass", lobjc_createClass},
   {"class_addMethod", lobjc_class_addMethod},

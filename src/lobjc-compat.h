@@ -31,6 +31,7 @@
 #define class_getName(cls)       class_get_class_name(cls)
 #define class_isMetaClass(cls)   class_is_meta_class(cls)
 #define class_getInstanceMethod(cls,name) class_get_instance_method(cls,name)
+#define class_getInstanceSize(cls)        class_get_instance_size(cls)
 #define method_getNumberOfArguments(m)    method_get_number_of_arguments(m)
 
 #define Method Method_t
