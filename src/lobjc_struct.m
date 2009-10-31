@@ -50,7 +50,7 @@ static int struct_toobjc (lua_State *L) { /** __toobjc(self,type) */
   const char *sep = strchr(e, '=');
   luaL_argcheck(L, sep != NULL, 2, "bad type encoding ('=' missing)");
 
-  // タグ名がある場合はチェック
+  // check if 'type' has a tag
   if (*++e != '?') {
     lua_getfield(L, 1, "__tagname");
     size_t name2_len;

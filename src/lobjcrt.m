@@ -821,9 +821,6 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   lua_newtable(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "lobjc:methodsig_override");
 
-  lua_newtable(L);
-  lua_setfield(L, LUA_REGISTRYINDEX, "lobjc:informal_protocols");
-
   luaL_register(L, "objc.runtime", funcs);
 
   luaL_getmetatable(L, tname_id);

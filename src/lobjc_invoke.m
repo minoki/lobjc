@@ -83,7 +83,7 @@ static size_t to_ffitype (lua_State *L, unsigned c,
           .elements = elements
         };
         *t++ = type;
-        elements[n] = NULL; // 番兵
+        elements[n] = NULL; // sentinel
         size += to_ffitype(L, n, type_begin, elements, NULL);
         // TODO: consider alignment and padding
         break;
