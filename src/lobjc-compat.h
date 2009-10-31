@@ -69,6 +69,7 @@ Protocol *objc_getProtocol(const char *name);
 Class objc_allocateClassPair(Class superclass, const char *name, size_t extraBytes);
 void  objc_registerClassPair(Class cls);
 int   objc_getClassList(Class *buffer, int bufferLen);
+Protocol **objc_copyProtocolList(unsigned int *outCount);
 Class object_setClass(id obj, Class cls);
 Ivar  object_getInstanceVariable(id obj, const char *name, void **outValue);
 Ivar  object_setInstanceVariable(id obj, const char *name, void *value);

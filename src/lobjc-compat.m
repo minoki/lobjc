@@ -40,6 +40,14 @@ int objc_getClassList(Class *buffer, int bufferLen) {
   return n;
 }
 
+Protocol **objc_copyProtocolList(unsigned int *outCount) {
+  // NOT IMPLEMENTED YET
+  if (outCount) {
+    *outCount = 0;
+  }
+  return NULL;
+}
+
 Class object_setClass(id obj, Class cls) {
   if (obj == nil) {
     return Nil;

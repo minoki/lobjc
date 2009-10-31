@@ -413,10 +413,7 @@ static int lobjc_class_copyIvarList (lua_State *L) { /** class_copyIvarList(cls)
   int err = lua_pcall(L, 1, 1, 0);
   free(ivars);
 
-  if (err) {
-    return lua_error(L);
-  }
-  return 1;
+  return err == 0 ? 1 : lua_error(L);
 }
 
 static int lobjc_class_copyMethodList_aux (lua_State *L) {
@@ -442,10 +439,7 @@ static int lobjc_class_copyMethodList (lua_State *L) { /** class_copyMethodList(
   int err = lua_pcall(L, 1, 1, 0);
   free(methods);
 
-  if (err) {
-    return lua_error(L);
-  }
-  return 1;
+  return err == 0 ? 1 : lua_error(L);
 }
 
 static int lobjc_class_copyProtocolList_aux (lua_State *L) {
@@ -471,10 +465,21 @@ static int lobjc_class_copyProtocolList (lua_State *L) { /** class_copyProtocolL
   int err = lua_pcall(L, 1, 1, 0);
   free(protocols);
 
-  if (err) {
-    return lua_error(L);
-  }
-  return 1;
+  return err == 0 ? 1 : lua_error(L);
+}
+
+static int lobjc_objc_copyProtocolList (lua_State *L) { /** objc_copyProtocolList() */
+  struct copyXXXList_aux_params params = {0, NULL};
+
+  lua_pushcfunction(L, lobjc_class_copyProtocolList_aux);
+  lua_pushlightuserdata(L, &params);
+
+  Protocol **protocols = objc_copyProtocolList(&params.count);
+  params.list = protocols;
+  int err = lua_pcall(L, 1, 1, 0);
+  free(protocols);
+
+  return err == 0 ? 1 : lua_error(L);
 }
 
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
@@ -704,6 +709,7 @@ static const luaL_Reg funcs[] = {
   {"objc_getMetaClass",           lobjc_objc_getMetaClass},
   {"objc_getProtocol",            lobjc_objc_getProtocol},
   {"objc_getClassList",           lobjc_objc_getClassList},
+  {"objc_copyProtocolList",       lobjc_objc_copyProtocolList},
   {"object_getClass",             lobjc_object_getClass},
   {"object_getClassName",         lobjc_object_getClassName},
   {"object_setClass",             lobjc_object_setClass},
