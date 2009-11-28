@@ -9,12 +9,16 @@
 #include <lua.h>
 #include <stdbool.h>
 #include <objc/objc.h>
+#include <ffi.h>
 
 @class NSMethodSignature;
 @class NSInvocation;
 
 int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
                        unsigned int argc, int firstarg,
+                       bool already_retained);
+int lobjc_invoke_func_cif (lua_State *L, ffi_cif *cif, void (*fn)(),
+                       const char *e, unsigned int argc, int firstarg,
                        bool already_retained);
 int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
                                  NSMethodSignature *sig, int firstarg,

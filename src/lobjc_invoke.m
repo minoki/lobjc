@@ -32,18 +32,30 @@
 
 // 必要なバッファの大きさをバイト数で返す(lobjc_conv_sizeofを足したものと同じ)
 // ついでにout/inout引数の数も返す
-// NOTE: この関数はLuaのスタックにuserdataを置くかもしれない(malloc代わり)
-static size_t to_ffitype (lua_State *L, unsigned c,
-                          const char *e, ffi_type *types[], size_t *nout) {
-  ffi_type **t = types;
+static size_t scansig (lua_State *L, unsigned c,
+                          const char *e, size_t *nout) {
   size_t size = 0;
   for (unsigned i = 0; i < c; ++i) {
     unsigned char q = get_qualifier(e);
+    size += lobjc_conv_sizeof(L, e);
+    if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && nout) {
+      ++*nout;
+    }
+    e = skip_type(L, e);
+    while (isdigit(*e)) ++e; // skip digits
+  }
+  return size;
+}
+
+static void to_ffitype (lua_State *L, unsigned c,
+                          const char *e, ffi_type *types[]) {
+  ffi_type **t = types;
+  for (unsigned i = 0; i < c; ++i) {
     e = skip_qualifier(e);
     char c = *e++;
     switch (c) {
 #define T(c,ffi_type,type) \
-    case c: *t++ = &ffi_type; size += sizeof(type); break;
+    case c: *t++ = &ffi_type; break;
     T('c', ffi_type_schar, char)
     T('i', ffi_type_sint, int)
     T('s', ffi_type_sshort, short)
@@ -61,8 +73,8 @@ static size_t to_ffitype (lua_State *L, unsigned c,
     T('@', ffi_type_pointer, id)
     T('#', ffi_type_pointer, Class)
     T(':', ffi_type_pointer, SEL)
+    T('v', ffi_type_void, void)
 #undef T
-    case 'v': *t++ = &ffi_type_void; break;
     case '[': luaL_error(L, "invoke: array not supported"); break;
     case '{': {
         e = skip_tagname(e, NULL);
@@ -84,7 +96,7 @@ static size_t to_ffitype (lua_State *L, unsigned c,
         };
         *t++ = type;
         elements[n] = NULL; // sentinel
-        size += to_ffitype(L, n, type_begin, elements, NULL);
+        to_ffitype(L, n, type_begin, elements);
         // TODO: consider alignment and padding
         break;
       }
@@ -92,17 +104,12 @@ static size_t to_ffitype (lua_State *L, unsigned c,
     case 'b': luaL_error(L, "invoke: bitfield not supported"); break;
     case '^':
       *t++ = &ffi_type_pointer;
-      size += sizeof(void *);
       e = skip_type(L, e);
-      if (q & (QUALIFIER_OUT|QUALIFIER_INOUT) && nout) {
-        ++*nout;
-      }
       break;
     default: luaL_error(L, "invoke: unknown type encoding: '%c'", c); break;
     }
     while (isdigit(*e)) ++e; // skip digits
   }
-  return size;
 }
 
 struct ReturnValue {
@@ -130,7 +137,7 @@ static void getarg (lua_State *L, struct ReturnValue *retvals, size_t *pnout, co
   }  
 }
 
-static int pushresults (lua_State *L, struct ReturnValue* retvals, int count) {
+static int pushresults (lua_State *L, struct ReturnValue *retvals, int count) {
   for (int i = 0; i < count; ++i) {
     if (retvals[i].already_retained) {
       lobjc_conv_objctolua1_noretain(L, retvals[i].type, retvals[i].p);
@@ -141,71 +148,77 @@ static int pushresults (lua_State *L, struct ReturnValue* retvals, int count) {
   return count;
 }
 
+int lobjc_invoke_func_cif (lua_State *L, ffi_cif *cif, void (*fn)(),
+                       const char *e, unsigned int argc, int firstarg,
+                       bool already_retained) {
+  size_t nout;
+  size_t buffer_len = scansig(L, argc, e, &nout);
+  void *args[argc];
+  unsigned char buffer[buffer_len];
+  struct ReturnValue retvals[nout+1];
+  size_t nret = 0; // number of results
+  void *ret_buffer = NULL;
+
+  {
+    void *buffer_ptr = buffer;
+
+    if (*skip_qualifier(e) != 'v') {
+      retvals[nret++] = (struct ReturnValue){
+        .type = e,
+        .p = buffer_ptr,
+        .already_retained = already_retained
+      };
+      ret_buffer = buffer_ptr;
+      *(unsigned char **)&buffer_ptr += lobjc_conv_sizeof(L, e); // size of return type
+    }
+
+    const char *type = skip_type(L, e); /* skip return type */
+    while (isdigit(*type)) ++type; // skip digits
+
+    int narg = firstarg; // index of arguments passed from lua
+
+    for (unsigned i = 0; i < argc; ++i) {
+      args[i] = buffer_ptr;
+      getarg(L, retvals, &nret, type, &narg, buffer_ptr);
+      *(unsigned char **)&buffer_ptr += lobjc_conv_sizeof(L, type); // size of return type
+      type = skip_type(L, type);
+      while (isdigit(*type)) ++type; // skip digits
+    }
+  }
+
+  {
+    id savedException = nil;
+    @try {
+      ffi_call(cif, (void *)fn, ret_buffer, args);
+    }
+    @catch (id e) {
+      savedException = e;
+    }
+    if (savedException) {
+      return lobjc_exception_rethrow_as_lua(L, savedException);
+    }
+  }
+
+  return pushresults(L, retvals, nret);
+}
+
 int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
                        unsigned int argc, int firstarg,
                        bool already_retained) {
   ffi_cif cif;
   ffi_type* types[argc+1]; // include return type
-  size_t nout = 0;
   lua_settop(L, firstarg+argc-1); // 引数が足りなかった場合のエラーメッセージがちょっと変わるけど気にしない
 
-  size_t buffer_len = to_ffitype(L, argc+1, e, types, &nout);
+  to_ffitype(L, argc+1, e, types);
   // スタックにuserdataがたまっている可能性あり
 
   ffi_status status;
   status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI,
     argc, types[0], &types[1]);
-  if (status == FFI_OK) {
-    void *args[argc];
-    unsigned char buffer[buffer_len]; // バッファオーバーフロー注意
-    struct ReturnValue retvals[nout+1];
-    size_t nret = 0; // number of results
-    void *ret_buffer = NULL;
-
-    // スタックにuserdataがたまっている可能性あり
-    {
-      void *buffer_ptr = buffer;
-
-      if (types[0] != &ffi_type_void) {
-        retvals[nret++] = (struct ReturnValue){
-          .type = e,
-          .p = buffer_ptr,
-          .already_retained = already_retained
-        };
-        ret_buffer = buffer_ptr;
-        *(unsigned char **)&buffer_ptr += lobjc_conv_sizeof(L, e); // size of return type
-      }
-
-      const char *type = skip_type(L, e); /* skip return type */
-      while (isdigit(*type)) ++type; // skip digits
-
-      int narg = firstarg; // index of arguments passed from lua
-
-      for (unsigned i = 0; i < argc; ++i) {
-        args[i] = buffer_ptr;
-        getarg(L, retvals, &nret, type, &narg, buffer_ptr);
-        *(unsigned char **)&buffer_ptr += lobjc_conv_sizeof(L, type); // size of return type
-        type = skip_type(L, type);
-        while (isdigit(*type)) ++type; // skip digits
-      }
-    }
-
-    {
-      id savedException = nil;
-      @try {
-        ffi_call(&cif, (void *)fn, ret_buffer, args);
-      }
-      @catch (id e) {
-        savedException = e;
-      }
-      if (savedException) {
-        return lobjc_exception_rethrow_as_lua(L, savedException);
-      }
-    }
-
-    return pushresults(L, retvals, nret);
+  if (status != FFI_OK) {
+    return luaL_error(L, "ffi_prep_cif failed");
   }
-  return luaL_error(L, "ffi_prep_cif failed");
+  return lobjc_invoke_func_cif(L, &cif, fn, e, argc, firstarg, already_retained);
 }
 
 int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
@@ -218,7 +231,7 @@ int lobjc_invoke_with_signature (lua_State *L, id obj, SEL sel,
   [inv setSelector: sel]; // _cmd
   [inv setTarget: obj]; // self
 
-  struct ReturnValue retvals[argc+1];
+  struct ReturnValue retvals[argc+1]; // inefficient
   size_t nret = 0;
   void *ret_buffer = NULL;
   {
@@ -487,7 +500,8 @@ IMP lobjc_buildIMP (lua_State *L, const char *sig) {
   {
     int n = lua_gettop(L);
     ffi_type **types = lua_newuserdata(L, sizeof(ffi_type *)*(cli->argc+1));
-    to_ffitype(L, cli->argc+1, sig, types, &cli->nout);
+    scansig(L, cli->argc+1, sig, &cli->nout);
+    to_ffitype(L, cli->argc+1, sig, types);
     while (lua_gettop(L) > n) luaL_ref(L, n);
 
     ffi_status status = ffi_prep_cif(&cli->cif, FFI_DEFAULT_ABI, cli->argc,
