@@ -18,7 +18,8 @@ endif
 CFLAGS+= $(shell pkg-config --cflags libffi)
 LIBS+= $(shell pkg-config --libs libffi)
 
-CFLAGS+= -std=c99 -DLUA_LIB -Wall -fobjc-exceptions $(MYCFLAGS)
+CFLAGS+= -std=c99 -DLUA_LIB -Wall $(MYCFLAGS)
+OBJCFLAGS+= -fobjc-exceptions $(MYOBJCFLAGS)
 # -fobjc-gc -D"id=__strong id"
 OBJS= \
   lobjcrt.o \
@@ -41,6 +42,9 @@ $(SO): $(OBJS)
 	$(LINK) -o $@ $^ $(LIBS)
 
 .m.o:
+	$(CC) -o $@ -c $(CFLAGS) $(OBJCFLAGS) $<
+
+.c.o:
 	$(CC) -o $@ -c $(CFLAGS) $<
 
 clean:
@@ -51,7 +55,7 @@ test: tests/test.m $(OBJS)
 	$(CC) -o $@ $(CFLAGS) -I. $^ -llua -lobjc $(LIBS)
 
 depend:
-	$(CC) -MM $(CFLAGS) *.m > depend.mak
+	$(CC) -MM $(CFLAGS) *.m *.c > depend.mak
 
 .SUFFIXES: .m .o
 .PHONY: all clean depend

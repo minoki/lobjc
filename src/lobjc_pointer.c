@@ -3,13 +3,13 @@
 ** See file COPYRIGHT for more information
 */
 
-#import "lobjc.h"
-#import "lobjc_convert.h"
-#import <lua.h>
-#import <lauxlib.h>
-#import <stdint.h>
-#import <string.h>
-#import <stdbool.h>
+#include "lobjc.h"
+#include "lobjc_convert.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
 
 static const char tname[] = "lobjc:pointer";
 

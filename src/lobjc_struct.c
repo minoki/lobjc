@@ -3,13 +3,13 @@
 ** See file COPYRIGHT for more information
 */
 
-#import "lobjc.h"
-#import "lobjc_convert.h"
-#import "typeencoding.h"
+#include "lobjc.h"
+#include "lobjc_convert.h"
+#include "typeencoding.h"
 
-#import <lua.h>
-#import <lauxlib.h>
-#import <string.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <string.h>
 
 static const char tname_struct[] = "lobjc:struct";
 

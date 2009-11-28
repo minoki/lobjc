@@ -11,8 +11,12 @@
 #include <objc/objc.h>
 #include <ffi.h>
 
+#if defined(__OBJC__)
 @class NSMethodSignature;
 @class NSInvocation;
+#else
+typedef struct objc_object NSMethodSignature, NSInvocation;
+#endif
 
 int lobjc_invoke_func (lua_State *L, void (*fn)(), const char *e,
                        unsigned int argc, int firstarg,

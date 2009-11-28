@@ -5,14 +5,14 @@
 
 #define _GNU_SOURCE
 
-#import "lobjc.h"
-#import "lobjc_convert.h"
-#import "lobjc_invoke.h"
+#include "lobjc.h"
+#include "lobjc_convert.h"
+#include "lobjc_invoke.h"
 
-#import <dlfcn.h>
-#import <lua.h>
-#import <lauxlib.h>
-#import <stdbool.h>
+#include <dlfcn.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <stdbool.h>
 
 static const char dylib_tname[] = "lobjc:dylib";
 

@@ -10,13 +10,13 @@ TODO: アライメントの考慮
 */
 
 
-#import "typeencoding.h"
-#import <string.h>
-#import <ctype.h>
-#import <assert.h>
-#import <stdio.h>
-#import <lua.h>
-#import <lauxlib.h>
+#include "typeencoding.h"
+#include <string.h>
+#include <ctype.h>
+#include <assert.h>
+#include <stdio.h>
+#include <lua.h>
+#include <lauxlib.h>
 
 const char *skip_qualifier (const char *e) {
   for (; ; ++e) {
