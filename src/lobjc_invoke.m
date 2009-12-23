@@ -29,6 +29,7 @@
 static size_t scansig (lua_State *L, unsigned c,
                           const char *e, size_t *nout) {
   size_t size = 0;
+  *nout = 0;
   for (unsigned i = 0; i < c; ++i) {
     unsigned char q = get_qualifier(e);
     size += lobjc_conv_sizeof(L, e);
