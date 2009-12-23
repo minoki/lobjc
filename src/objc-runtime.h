@@ -3,10 +3,12 @@
 ** See file COPYRIGHT for more information
 */
 
-#ifndef LOBJC_COMPAT_H
-#define LOBJC_COMPAT_H
+#ifndef LOBJC_OBJC_RUNTIME_H
+#define LOBJC_OBJC_RUNTIME_H
 
 #if defined(__NEXT_RUNTIME__)
+
+#include <objc/runtime.h>
 
 #elif defined(GNU_RUNTIME)
 

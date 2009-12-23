@@ -3,7 +3,7 @@
 ** See file COPYRIGHT for more information
 */
 
-#include "lobjc-compat.h"
+#include "objc-runtime.h"
 
 #if defined(GNU_RUNTIME)
 

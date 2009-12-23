@@ -9,13 +9,7 @@
 #import "typeencoding.h"
 #import "lobjc_luawrapper.h"
 
-#if defined(__NEXT_RUNTIME__)
-#include <objc/runtime.h>
-#elif defined(GNU_RUNTIME)
-#include "lobjc-compat.h"
-#else
-#error "unknown Objective-C runtime"
-#endif
+#import "objc-runtime.h"
 #import <lua.h>
 #import <lauxlib.h>
 #import <Foundation/Foundation.h>
