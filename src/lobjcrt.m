@@ -22,6 +22,7 @@ extern int run_simple_test (lua_State *L);
 static const char tname_id[] = "objc:id";
 static const char tname_Method[] = "objc:Method";
 static const char tname_Ivar[] = "objc:Ivar";
+static const char tname_property[] = "objc:objc_property_t";
 
 void lobjc_pushselector (lua_State *L, SEL sel) {
   lua_pushstring(L, sel_getName(sel));
@@ -481,6 +482,39 @@ static int lobjc_class_getInstanceSize (lua_State *L) { /** class_getInstanceSiz
   return 1;
 }
 
+static int lobjc_class_getProperty (lua_State *L) { /** class_getProperty(cls,name) */
+  Class cls = lobjc_toclass(L, 1);
+  const char *name = luaL_checkstring(L, 2);
+  lobjc_pushptr(L, class_getProperty(cls, name), tname_property, "lobjc:property_cache");
+  return 1;
+}
+
+static int lobjc_class_copyPropertyList_aux (lua_State *L) {
+  struct copyXXXList_aux_params *params = lua_touserdata(L, 1);
+  objc_property_t* props = params->list;
+  lua_createtable(L, params->count, 0);
+  for (unsigned int i = 0; i < params->count; ++i) {
+    lobjc_pushptr(L, props[i], tname_property, "lobjc:property_cache");
+    lua_rawseti(L, -2, i+1);
+  }
+  return 1;
+}
+
+static int lobjc_class_copyPropertyList (lua_State *L) { /** class_copyPropertyList(cls) */
+  Class cls = lobjc_toclass(L, 1);
+  struct copyXXXList_aux_params params = {0, NULL};
+
+  lua_pushcfunction(L, lobjc_class_copyPropertyList_aux);
+  lua_pushlightuserdata(L, &params);
+
+  objc_property_t *props = class_copyPropertyList(cls, &params.count);
+  params.list = props;
+  int err = lua_pcall(L, 1, 1, 0);
+  free(props);
+
+  return err == 0 ? 1 : lua_error(L);
+}
+
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
   Method method = lobjc_toptr(L, 1, tname_Method);
   lobjc_pushselector(L, method_getName(method));
@@ -521,6 +555,15 @@ static int lobjc_ivar_getOffset (lua_State *L) { /** ivar_getOffset(ivar) */
   return 1;
 }
 
+static int lobjc_property_getName (lua_State *L) { /** property_getName(prop) */
+  lua_pushstring(L, property_getName(lobjc_toptr(L, 1, tname_property)));
+  return 1;
+}
+
+static int lobjc_property_getAttributes (lua_State *L) { /** property_getAttributes(prop) */
+  lua_pushstring(L, property_getAttributes(lobjc_toptr(L, 1, tname_property)));
+  return 1;
+}
 
 
 static const char *lobjc_method_getTypeEncoding_ex (lua_State *L, Class class, SEL sel, Method method) {
@@ -714,6 +757,8 @@ static const luaL_Reg funcs[] = {
   {"class_copyMethodList",        lobjc_class_copyMethodList},
   {"class_copyProtocolList",      lobjc_class_copyProtocolList},
   {"class_getInstanceSize",       lobjc_class_getInstanceSize},
+  {"class_getProperty",           lobjc_class_getProperty},
+  {"class_copyPropertyList",      lobjc_class_copyPropertyList},
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},
@@ -721,6 +766,8 @@ static const luaL_Reg funcs[] = {
   {"ivar_getName",                lobjc_ivar_getName},
   {"ivar_getTypeEncoding",        lobjc_ivar_getTypeEncoding},
   {"ivar_getOffset",              lobjc_ivar_getOffset},
+  {"property_getName",            lobjc_property_getName},
+  {"property_getAttributes",      lobjc_property_getAttributes},
 
   {"invoke", lobjc_invoke},
   {"invokewithclass", lobjc_invokewithclass},
@@ -802,6 +849,7 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   initcache(L, "lobjc:id_cache", "v");
   initcache(L, "lobjc:Method_cache", "v");
   initcache(L, "lobjc:Ivar_cache", "v");
+  initcache(L, "lobjc:property_cache", "v");
   initcache(L, "lobjc:wrapper_cache", "kv");
   initcache(L, "lobjc:wrapperinfo", "k");
 
@@ -810,6 +858,7 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
 
   luaL_newmetatable(L, tname_Method);
   luaL_newmetatable(L, tname_Ivar);
+  luaL_newmetatable(L, tname_property);
 
   setupautoreleasepool(L); // this must be called after luaL_newmetatable(...)
 
@@ -826,6 +875,9 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
 
   luaL_getmetatable(L, tname_Ivar);
   lua_setfield(L, -2, "__Ivar_metatable");
+
+  luaL_getmetatable(L, tname_property);
+  lua_setfield(L, -2, "__property_metatable");
 
   setplatforminfo(L);
 
