@@ -26,7 +26,7 @@
 
 // 必要なバッファの大きさをバイト数で返す(lobjc_conv_sizeofを足したものと同じ)
 // ついでにout/inout引数の数も返す
-static size_t scansig (lua_State *L, unsigned c,
+size_t scansig (lua_State *L, unsigned c,
                           const char *e, size_t *nout) {
   size_t size = 0;
   *nout = 0;
@@ -42,7 +42,7 @@ static size_t scansig (lua_State *L, unsigned c,
   return size;
 }
 
-static void to_ffitype (lua_State *L, unsigned c,
+void to_ffitype (lua_State *L, unsigned c,
                           const char *e, ffi_type *types[]) {
   ffi_type **t = types;
   for (unsigned i = 0; i < c; ++i) {

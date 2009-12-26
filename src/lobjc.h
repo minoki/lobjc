@@ -25,5 +25,6 @@ LUALIB_API int luaopen_objc_runtime_struct (lua_State *L);
 LUALIB_API int luaopen_objc_runtime_ffi (lua_State *L);
 LUALIB_API int luaopen_objc_runtime_pointer (lua_State *L);
 LUALIB_API int luaopen_objc_runtime_bridgesupport (lua_State *L);
+LUALIB_API int luaopen_objc_runtime_cfunction (lua_State *L);
 
 #endif

@@ -8,14 +8,17 @@
 #include "lobjc.h"
 #include "lobjc_convert.h"
 #include "lobjc_invoke.h"
+#include "lobjc_cfunction.h"
 
 #include <dlfcn.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 static const char dylib_tname[] = "lobjc:dylib";
 
+/*
 static int function_aux (lua_State *L) {
   void (*fn)() = (void (*)())lua_touserdata(L, lua_upvalueindex(1));
   const char *sig = lua_tostring(L, lua_upvalueindex(2));
@@ -23,26 +26,37 @@ static int function_aux (lua_State *L) {
   bool already_retained = (bool)lua_toboolean(L, lua_upvalueindex(4));
   return lobjc_invoke_func(L, fn, sig, argc, 1, already_retained);
 }
+*/
 
 static int lobjc_loadfunction (lua_State *L) { /** loadfunction(hnd,name,type,argc,already_retained) */
   void *hnd = *(void **)luaL_checkudata(L, 1, dylib_tname);
   const char *name = luaL_checkstring(L, 2);
-  luaL_checkstring(L, 3); // type encoding
+  const char *sig = luaL_checkstring(L, 3); // type encoding
   lua_Integer argc = luaL_checkinteger(L, 4);
   luaL_argcheck(L, argc >= 0, 3, "argc must be non-negative");
   luaL_checktype(L, 5, LUA_TBOOLEAN); // already_retained
+  bool already_retained = lua_toboolean(L, 5);
   void *fn = dlsym(hnd, name);
   if (!fn) {
     lua_pushnil(L);
     lua_pushstring(L, dlerror());
     return 2;
   }
+  int n = lua_gettop(L);
+  lobjc_newcfunction(L, (void (*)())fn, sig, already_retained);
+  assert(lua_gettop(L) == n+1);
+  lua_getfenv(L, -1);
+  lua_pushvalue(L, 1); // make resulting function refer to the dylib
+  luaL_ref(L, -2);
+  lua_pop(L, 1);
+  /*
   lua_pushlightuserdata(L, fn); // function pointer
   lua_pushvalue(L, 3); // type encoding
   lua_pushvalue(L, 4); // number of arguments
   lua_pushvalue(L, 5); // already_retained
   lua_pushvalue(L, 1); // make resulting function refer to the dylib
   lua_pushcclosure(L, function_aux, 5);
+  */
   return 1;
 }
 

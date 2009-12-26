@@ -32,6 +32,7 @@ OBJS= \
   lobjc_bridgesupport.o \
   typeencoding.o \
   lobjc_luawrapper.o \
+  lobjc_cfunction.o \
   simplecheck.o \
   lobjc-compat.o
 SO= objc.so

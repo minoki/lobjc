@@ -748,6 +748,7 @@ static const luaL_Reg sublibs[] = {
   {"objc.runtime.ffi", luaopen_objc_runtime_ffi},
   {"objc.runtime.pointer", luaopen_objc_runtime_pointer},
   {"objc.runtime.bridgesupport", luaopen_objc_runtime_bridgesupport},
+  {"objc.runtime.cfunction", luaopen_objc_runtime_cfunction},
   {NULL, NULL}
 };
 
