@@ -22,7 +22,9 @@ extern int run_simple_test (lua_State *L);
 static const char tname_id[] = "objc:id";
 static const char tname_Method[] = "objc:Method";
 static const char tname_Ivar[] = "objc:Ivar";
+#if !defined(DISABLE_OBJC2_PROPERTIES)
 static const char tname_property[] = "objc:objc_property_t";
+#endif
 
 void lobjc_pushselector (lua_State *L, SEL sel) {
   lua_pushstring(L, sel_getName(sel));
@@ -482,6 +484,7 @@ static int lobjc_class_getInstanceSize (lua_State *L) { /** class_getInstanceSiz
   return 1;
 }
 
+#if !defined(DISABLE_OBJC2_PROPERTIES)
 static int lobjc_class_getProperty (lua_State *L) { /** class_getProperty(cls,name) */
   Class cls = lobjc_toclass(L, 1);
   const char *name = luaL_checkstring(L, 2);
@@ -514,6 +517,7 @@ static int lobjc_class_copyPropertyList (lua_State *L) { /** class_copyPropertyL
 
   return err == 0 ? 1 : lua_error(L);
 }
+#endif
 
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
   Method method = lobjc_toptr(L, 1, tname_Method);
@@ -555,6 +559,7 @@ static int lobjc_ivar_getOffset (lua_State *L) { /** ivar_getOffset(ivar) */
   return 1;
 }
 
+#if !defined(DISABLE_OBJC2_PROPERTIES)
 static int lobjc_property_getName (lua_State *L) { /** property_getName(prop) */
   lua_pushstring(L, property_getName(lobjc_toptr(L, 1, tname_property)));
   return 1;
@@ -564,6 +569,7 @@ static int lobjc_property_getAttributes (lua_State *L) { /** property_getAttribu
   lua_pushstring(L, property_getAttributes(lobjc_toptr(L, 1, tname_property)));
   return 1;
 }
+#endif
 
 
 static const char *lobjc_method_getTypeEncoding_ex (lua_State *L, Class class, SEL sel, Method method) {
@@ -757,8 +763,10 @@ static const luaL_Reg funcs[] = {
   {"class_copyMethodList",        lobjc_class_copyMethodList},
   {"class_copyProtocolList",      lobjc_class_copyProtocolList},
   {"class_getInstanceSize",       lobjc_class_getInstanceSize},
+#if !defined(DISABLE_OBJC2_PROPERTIES)
   {"class_getProperty",           lobjc_class_getProperty},
   {"class_copyPropertyList",      lobjc_class_copyPropertyList},
+#endif
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},
@@ -766,8 +774,10 @@ static const luaL_Reg funcs[] = {
   {"ivar_getName",                lobjc_ivar_getName},
   {"ivar_getTypeEncoding",        lobjc_ivar_getTypeEncoding},
   {"ivar_getOffset",              lobjc_ivar_getOffset},
+#if !defined(DISABLE_OBJC2_PROPERTIES)
   {"property_getName",            lobjc_property_getName},
   {"property_getAttributes",      lobjc_property_getAttributes},
+#endif
 
   {"invoke", lobjc_invoke},
   {"invokewithclass", lobjc_invokewithclass},
@@ -849,7 +859,9 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   initcache(L, "lobjc:id_cache", "v");
   initcache(L, "lobjc:Method_cache", "v");
   initcache(L, "lobjc:Ivar_cache", "v");
+#if !defined(DISABLE_OBJC2_PROPERTIES)
   initcache(L, "lobjc:property_cache", "v");
+#endif
   initcache(L, "lobjc:wrapper_cache", "kv");
   initcache(L, "lobjc:wrapperinfo", "k");
 
@@ -858,7 +870,9 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
 
   luaL_newmetatable(L, tname_Method);
   luaL_newmetatable(L, tname_Ivar);
+#if !defined(DISABLE_OBJC2_PROPERTIES)
   luaL_newmetatable(L, tname_property);
+#endif
 
   setupautoreleasepool(L); // this must be called after luaL_newmetatable(...)
 
@@ -876,8 +890,10 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   luaL_getmetatable(L, tname_Ivar);
   lua_setfield(L, -2, "__Ivar_metatable");
 
+#if !defined(DISABLE_OBJC2_PROPERTIES)
   luaL_getmetatable(L, tname_property);
   lua_setfield(L, -2, "__property_metatable");
+#endif
 
   setplatforminfo(L);
 

@@ -17,6 +17,7 @@ else
     CFLAGS+= -DHAS_OBJC2_FRAMEWORK
     LIBS+= -lObjectiveC2
   endif
+  CFLAGS+= -DDISABLE_OBJC2_PROPERTIES
 endif
 
 CFLAGS+= $(shell pkg-config --cflags libffi)
