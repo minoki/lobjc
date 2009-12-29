@@ -242,60 +242,6 @@ static int lobjc_object_setClass (lua_State *L) { /** object_setClass(obj,cls) *
   return 1;
 }
 
-static int lobjc_object_getIvar (lua_State *L) { /** object_getIvar(obj,ivar) */
-  id obj = lobjc_toid(L, 1);
-  Ivar ivar = lobjc_toptr(L, 2, tname_Ivar);
-  lobjc_pushid(L, object_getIvar(obj, ivar));
-  return 1;
-}
-
-static int lobjc_object_setIvar (lua_State *L) { /** object_setIvar(obj,ivar,value) */
-  id obj = lobjc_toid(L, 1);
-  Ivar ivar = lobjc_toptr(L, 2, tname_Ivar);
-  id value = lobjc_toid(L, 3);
-  object_setIvar(obj, ivar, value);
-  return 0;
-}
-
-static int lobjc_object_getInstanceVariable (lua_State *L) { /** object_getInstanceVariable(obj,name) */
-  id obj = lobjc_toid(L, 1);
-  const char *name = luaL_checkstring(L, 2);
-
-  Class class = object_getClass(obj);
-  Ivar ivar = class_getInstanceVariable(class, name);
-  if (!ivar) {
-    return luaL_error(L, "no such instance variable");
-  }
-  const char *type = ivar_getTypeEncoding(ivar);
-  if (lobjc_conv_sizeof(L, type) != sizeof(void *)) {
-    return luaL_error(L, "types other than pointer are not supported");
-  }
-  void *value = NULL;
-  object_getInstanceVariable(obj, name, &value);
-  lobjc_conv_objctolua1(L, type, &value);
-  return 1;
-}
-
-static int lobjc_object_setInstanceVariable (lua_State *L) { /** object_setInstanceVariable(obj,name,value) */
-  id obj = lobjc_toid(L, 1);
-  const char *name = luaL_checkstring(L, 2);
-  luaL_checkany(L, 3);
-
-  Class class = object_getClass(obj);
-  Ivar ivar = class_getInstanceVariable(class, name);
-  if (!ivar) {
-    return luaL_error(L, "no such instance variable");
-  }
-  const char *type = ivar_getTypeEncoding(ivar);
-  if (lobjc_conv_sizeof(L, type) != sizeof(void *)) {
-    return luaL_error(L, "types other than pointer are not supported");
-  }
-  void *value = NULL;
-  lobjc_conv_luatoobjc1(L, 3, type, &value);
-  object_setInstanceVariable(obj, name, value);
-  return 0;
-}
-
 static int lobjc_getInstanceVariable (lua_State *L) { /** getInstanceVariable(obj,name) */
   id obj = lobjc_toid(L, 1);
   const char *name = luaL_checkstring(L, 2);
@@ -746,10 +692,6 @@ static const luaL_Reg funcs[] = {
   {"object_getClass",             lobjc_object_getClass},
   {"object_getClassName",         lobjc_object_getClassName},
   {"object_setClass",             lobjc_object_setClass},
-  {"object_getIvar",              lobjc_object_getIvar},
-  {"object_setIvar",              lobjc_object_setIvar},
-  {"object_getInstanceVariable",  lobjc_object_getInstanceVariable},
-  {"object_setInstanceVariable",  lobjc_object_setInstanceVariable},
   {"class_getName",               lobjc_class_getName},
   {"class_getSuperclass",         lobjc_class_getSuperclass},
   {"class_getInstanceVariable",   lobjc_class_getInstanceVariable},
