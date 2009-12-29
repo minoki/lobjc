@@ -14,6 +14,9 @@
 
 #include <ObjectiveC2/runtime.h>
 
+// As of Etoile's rev. 5670, this does't seem to be implemented..
+#define objc_copyProtocolList(outCount) ((*(outCount)=0),NULL)
+
 #elif defined(GNU_RUNTIME)
 
 #include <stdint.h>
