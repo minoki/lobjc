@@ -13,6 +13,10 @@ ifeq ($(ENVIRONMENT),cocoa)
 else
   CFLAGS+= $(shell gnustep-config --objc-flags)
   LIBS+= $(shell gnustep-config --base-libs)
+  ifeq ($(HAS_OBJC2_FRAMEWORK),yes)
+    CFLAGS+= -DHAS_OBJC2_FRAMEWORK
+    LIBS+= -lObjectiveC2
+  endif
 endif
 
 CFLAGS+= $(shell pkg-config --cflags libffi)

@@ -10,6 +10,10 @@
 
 #include <objc/runtime.h>
 
+#elif defined(GNU_RUNTIME) && defined(HAS_OBJC2_FRAMEWORK)
+
+#include <ObjectiveC2/runtime.h>
+
 #elif defined(GNU_RUNTIME)
 
 #include <stdint.h>

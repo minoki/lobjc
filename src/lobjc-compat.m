@@ -5,7 +5,7 @@
 
 #include "objc-runtime.h"
 
-#if defined(GNU_RUNTIME)
+#if defined(GNU_RUNTIME) && !defined(HAS_OBJC2_FRAMEWORK)
 
 #include <objc/Protocol.h>
 
