@@ -11,7 +11,7 @@ endif
 ifeq ($(ENVIRONMENT),cocoa)
   LIBS+= -framework Foundation
 else
-  CFLAGS+= $(shell gnustep-config --objc-flags)
+  OBJCFLAGS+= $(shell gnustep-config --objc-flags)
   LIBS+= $(shell gnustep-config --base-libs)
   ifeq ($(HAS_OBJC2_FRAMEWORK),yes)
     CFLAGS+= -DHAS_OBJC2_FRAMEWORK
@@ -41,8 +41,9 @@ SOURCES= \
   lobjc_ffi.c \
   lobjc_cfunction.c \
   typeencoding.c
-OBJS= $(patsubst %.m,$(BUILD_DIR)/%.o,$(filter %.m,$(SOURCES)))
-COBJS= $(patsubst %.c,$(BUILD_DIR)/%.o,$(filter %.c,$(SOURCES)))
+OBJC_OBJS= $(patsubst %.m,$(BUILD_DIR)/%.o,$(filter %.m,$(SOURCES)))
+C_OBJS= $(patsubst %.c,$(BUILD_DIR)/%.o,$(filter %.c,$(SOURCES)))
+OBJS= $(OBJC_OBJS) $(C_OBJS)
 SO= objc.so
 
 all: $(SO)
@@ -58,10 +59,10 @@ $(BUILD_DIR):
 $(SO): $(OBJS)
 	$(LINK) -o $@ $^ $(LIBS)
 
-$(OBJS): $(BUILD_DIR)/%.o: %.m $(BUILD_DIR)
+$(OBJC_OBJS): $(BUILD_DIR)/%.o: %.m $(BUILD_DIR)
 	$(CC) -o $@ -c $(CFLAGS) $(OBJCFLAGS) $<
 
-$(COBJS): $(BUILD_DIR)/%.o: %.c $(BUILD_DIR)
+$(C_OBJS): $(BUILD_DIR)/%.o: %.c $(BUILD_DIR)
 	$(CC) -o $@ -c $(CFLAGS) $<
 
 clean:
