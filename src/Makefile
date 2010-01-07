@@ -13,7 +13,9 @@ ifeq ($(ENVIRONMENT),cocoa)
 else
   OBJCFLAGS+= $(shell gnustep-config --objc-flags)
   LIBS+= $(shell gnustep-config --base-libs)
-  ifeq ($(HAS_OBJC2_FRAMEWORK),yes)
+  ifeq ($(HAS_LIBOBJC2),yes)
+    CFLAGS+= -DHAS_LIBOBJC2
+  else ifeq ($(HAS_OBJC2_FRAMEWORK),yes)
     CFLAGS+= -DHAS_OBJC2_FRAMEWORK
     LIBS+= -lObjectiveC2
   endif
@@ -23,9 +25,10 @@ endif
 CFLAGS+= $(shell pkg-config --cflags libffi)
 LIBS+= $(shell pkg-config --libs libffi)
 
-CFLAGS+= -std=c99 -DLUA_LIB -Wall $(MYCFLAGS)
+CFLAGS+= -std=c99 -DLUA_LIB -Wall -g -fPIC $(MYCFLAGS)
 OBJCFLAGS+= -fobjc-exceptions $(MYOBJCFLAGS)
 # -fobjc-gc -D"id=__strong id"
+LIBS+= $(MYLIBS)
 BUILD_DIR= build-$(shell uname -m)-$(shell uname -s)
 SOURCES= \
   lobjcrt.m \

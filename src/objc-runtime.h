@@ -10,6 +10,12 @@
 
 #include <objc/runtime.h>
 
+#elif defined(GNU_RUNTIME) && defined(HAS_LIBOBJC2)
+
+#include <objc/runtime.h>
+
+#define objc_copyProtocolList(outCount) ((*(outCount)=0),NULL)
+
 #elif defined(GNU_RUNTIME) && defined(HAS_OBJC2_FRAMEWORK)
 
 #include <ObjectiveC2/runtime.h>
