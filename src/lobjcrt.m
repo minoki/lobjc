@@ -531,7 +531,7 @@ retry:
   } else {
     lua_pop(L, 1); // pop nil
     class = class_getSuperclass(class);
-    m = class_getInstanceMethod(class, sel);
+    m = class ? class_getInstanceMethod(class, sel) : NULL;
     if (!m) {
       lua_pop(L, 1); // pop table
       return method_getTypeEncoding(method);
