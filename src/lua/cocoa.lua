@@ -54,6 +54,9 @@ function table_to_NSCountedSet(t)
   end
   return a
 end
+function string_to_NSString(s)
+  return classes.NSString:stringWithUTF8String_(s)
+end
 string_to_NSData = runtime.string_to_NSData
 
 -- convert back from NS***
@@ -70,6 +73,10 @@ function NSDictionary_to_table(a)
     t[k] = a:objectForKey_(k)
   end
   return t
+end
+function NSString_to_string(a)
+  if a == nil then return nil end
+  return a:UTF8String()
 end
 NSData_to_string = runtime.NSData_to_string
 
