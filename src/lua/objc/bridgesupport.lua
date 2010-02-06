@@ -192,6 +192,7 @@ local function loadBS(b,bspath,bsinline)
     local protocol = objc.informal_protocols[name]
     protocol.name = name
     protocol.methods = protocol.methods or {}
+    protocol.classmethods = protocol.classmethods or {}
     for _,m in ipairs(e) do
       if m.tag ~= "method" then
         error("BridgeSupport: unknown tag in <informal_protocol>:"..m.tag)
@@ -204,8 +205,7 @@ local function loadBS(b,bspath,bsinline)
       if not type then
         -- method does not exist in this environment
       elseif class_method then
-        -- not supported
---        DEBUG_print("class_method in informal_protocol "..name.." "..selector.." "..type)
+        protocol.classmethods[selector] = {type=type}
       else
         protocol.methods[selector] = {type=type}
       end
