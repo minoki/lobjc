@@ -505,7 +505,80 @@ static int lobjc_ivar_getOffset (lua_State *L) { /** ivar_getOffset(ivar) */
   return 1;
 }
 
+static int copyMethodDescriptionList_aux (lua_State *L) {
+  struct objc_method_description_list *list = *(struct objc_method_description_list **)lua_touserdata(L, 1);
+  lua_createtable(L, list->count, 0);
+  for (int i = 0; i < list->count; ++i) {
+    lua_createtable(L, 0, 2);
+    lobjc_pushselector(L, list->list[i].name);
+    lua_setfield(L, -2, "name");
+    lua_pushstring(L, list->list[i].types);
+    lua_setfield(L, -2, "types");
+    lua_rawseti(L, -2, i+1);
+  }
+  return 1;
+}
+
+static int lobjc_protocol_copyInstanceMethodDescriptionList (lua_State *L) { /** protocol_copyInstanceMethodDescriptionList(protocol) */
+  Protocol *protocol = lobjc_toid(L, 1);
+  struct objc_method_description_list *list = NULL;
+  lua_pushcfunction(L, copyMethodDescriptionList_aux);
+  lua_pushlightuserdata(L, &list);
+  list = protocol_copyInstanceMethodDescriptionList(protocol);
+  int err = lua_pcall(L, 1, 1, 0);
+  free(list);
+  return err == 0 ? 1 : lua_error(L);
+}
+
+static int lobjc_protocol_copyClassMethodDescriptionList (lua_State *L) { /** protocol_copyClassMethodDescriptionList(protocol) */
+  Protocol *protocol = lobjc_toid(L, 1);
+  struct objc_method_description_list *list = NULL;
+  lua_pushcfunction(L, copyMethodDescriptionList_aux);
+  lua_pushlightuserdata(L, &list);
+  list = protocol_copyClassMethodDescriptionList(protocol);
+  int err = lua_pcall(L, 1, 1, 0);
+  free(list);
+  return err == 0 ? 1 : lua_error(L);
+}
+
+static int lobjc_protocol_copyOptionalInstanceMethodDescriptionList (lua_State *L) { /** protocol_copyOptionalInstanceMethodDescriptionList(protocol) */
+  Protocol *protocol = lobjc_toid(L, 1);
+  struct objc_method_description_list *list = NULL;
+  lua_pushcfunction(L, copyMethodDescriptionList_aux);
+  lua_pushlightuserdata(L, &list);
+  list = protocol_copyOptionalInstanceMethodDescriptionList(protocol);
+  int err = lua_pcall(L, 1, 1, 0);
+  free(list);
+  return err == 0 ? 1 : lua_error(L);
+}
+
+static int lobjc_protocol_copyOptionalClassMethodDescriptionList (lua_State *L) { /** protocol_copyOptionalClassMethodDescriptionList(protocol) */
+  Protocol *protocol = lobjc_toid(L, 1);
+  struct objc_method_description_list *list = NULL;
+  lua_pushcfunction(L, copyMethodDescriptionList_aux);
+  lua_pushlightuserdata(L, &list);
+  list = protocol_copyOptionalClassMethodDescriptionList(protocol);
+  int err = lua_pcall(L, 1, 1, 0);
+  free(list);
+  return err == 0 ? 1 : lua_error(L);
+}
+
 #if !defined(DISABLE_OBJC2_PROPERTIES)
+static int lobjc_protocol_copyPropertyList (lua_State *L) { /** protocol_copyPropertyList(protocol) */
+  Protocol *protocol = lobjc_toid(L, 1);
+  struct copyXXXList_aux_params params = {0, NULL};
+
+  lua_pushcfunction(L, lobjc_class_copyPropertyList_aux);
+  lua_pushlightuserdata(L, &params);
+
+  objc_property_t *props = protocol_copyPropertyList(protocol, &params.count);
+  params.list = props;
+  int err = lua_pcall(L, 1, 1, 0);
+  free(props);
+
+  return err == 0 ? 1 : lua_error(L);
+}
+
 static int lobjc_property_getName (lua_State *L) { /** property_getName(prop) */
   lua_pushstring(L, property_getName(lobjc_toptr(L, 1, tname_property)));
   return 1;
@@ -716,7 +789,12 @@ static const luaL_Reg funcs[] = {
   {"ivar_getName",                lobjc_ivar_getName},
   {"ivar_getTypeEncoding",        lobjc_ivar_getTypeEncoding},
   {"ivar_getOffset",              lobjc_ivar_getOffset},
+  {"protocol_copyInstanceMethodDescriptionList", lobjc_protocol_copyInstanceMethodDescriptionList},
+  {"protocol_copyClassMethodDescriptionList", lobjc_protocol_copyClassMethodDescriptionList},
+  {"protocol_copyOptionalInstanceMethodDescriptionList", lobjc_protocol_copyOptionalInstanceMethodDescriptionList},
+  {"protocol_copyOptionalClassMethodDescriptionList", lobjc_protocol_copyOptionalClassMethodDescriptionList},
 #if !defined(DISABLE_OBJC2_PROPERTIES)
+  {"protocol_copyPropertyList",   lobjc_protocol_copyPropertyList},
   {"property_getName",            lobjc_property_getName},
   {"property_getAttributes",      lobjc_property_getAttributes},
 #endif
