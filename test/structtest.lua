@@ -1,0 +1,31 @@
+require "cocoa"
+
+local p = cocoa.NSMakePoint(123,456)
+assert(p == cocoa.NSPoint{123,456})
+assert(p == cocoa.NSPoint{x=123,456})
+assert(p == cocoa.NSPoint{123,y=456})
+assert(p == cocoa.NSPoint{x=123,y=456})
+assert(p.x == 123)
+assert(p.y == 456)
+print("p:",p)
+
+local s = cocoa.NSMakeSize(123,456)
+assert(s == cocoa.NSSize{123,456})
+assert(s == cocoa.NSSize{width=123,456})
+assert(s == cocoa.NSSize{123,height=456})
+assert(s == cocoa.NSSize{width=123,height=456})
+assert(s.width == 123)
+assert(s.height == 456)
+print("s:",s)
+
+assert(p ~= s)
+
+local r = cocoa.NSMakeRect(123,456,123,456)
+assert(r == cocoa.NSRect{p,s})
+assert(r == cocoa.NSRect{origin=p,s})
+assert(r == cocoa.NSRect{p,size=s})
+assert(r == cocoa.NSRect{origin=p,size=s})
+assert(r.origin == p)
+assert(r.size == s)
+assert(r.origin.x == 123)
+print("r:",r)
