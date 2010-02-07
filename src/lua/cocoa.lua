@@ -1,3 +1,6 @@
+-- Copyright (C) 2009-2010 ARATA Mizuki
+-- See file COPYRIGHT for more information
+
 local setmetatable = setmetatable
 local pairs,ipairs = pairs,ipairs
 local table = require "table"

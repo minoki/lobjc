@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2009 ARATA Mizuki
+** Copyright (C) 2009-2010 ARATA Mizuki
 ** See file COPYRIGHT for more information
 */
 
@@ -684,7 +684,7 @@ static int lobjc_invoke (lua_State *L) { /** invoke(obj,sel,...) */
   return lobjc_invoke_func(L, (void (*)())impl, e, argc, 1, already_retained);
 }
 
-static int lobjc_invokewithclass (lua_State *L) { /** invokewithclass(obj,sel,...) */
+static int lobjc_invokewithclass (lua_State *L) { /** invokewithclass(class,obj,sel,...) */
   Class class   = lobjc_toclass(L, 1);
   id obj        = lobjc_toid(L, 2);
   SEL sel       = sel_registerName(luaL_checkstring(L, 3));
@@ -701,7 +701,7 @@ static int lobjc_invokewithclass (lua_State *L) { /** invokewithclass(obj,sel,..
   return lobjc_invoke_func(L, (void (*)())impl, e, argc, 2, already_retained);
 }
 
-static int lobjc_gettypeencoding_x (lua_State *L) { /** gettypeencoding_x(obj,sel,...) */
+static int lobjc_gettypeencoding_x (lua_State *L) { /** gettypeencoding_x(obj,sel) */
   id obj        = lobjc_toid(L, 1);
   SEL sel       = sel_registerName(luaL_checkstring(L, 2));
   Class class   = object_getClass(obj);

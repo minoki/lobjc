@@ -1,3 +1,6 @@
+-- Copyright (C) 2010 ARATA Mizuki
+-- See file COPYRIGHT for more information
+
 local getmetatable,setmetatable = getmetatable,setmetatable
 local ipairs,pairs = ipairs,pairs
 local string = require "string"

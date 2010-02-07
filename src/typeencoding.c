@@ -51,11 +51,15 @@ unsigned char get_qualifier (const char *e) {
 
 
 const char *skip_type (lua_State *L, const char *e) {
-// TODO: 名前の読み飛ばし
+  if (*e == '"') {
+    // skip variable name
+    while(*++e ~= '"');
+    ++e;
+  }
   e = skip_qualifier(e);
   char c = *e++;
   if (!c) {
-    luaL_error(L, "ぬるぽ");
+    luaL_error(L, "unexpected end of type encoding");
   } else if (strchr("cislqCISLQfdBv*@#:?", c) != NULL) {
   } else if (c == '[') { // an array
     while (isdigit(*e)) ++e;

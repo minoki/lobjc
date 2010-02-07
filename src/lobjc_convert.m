@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2009 ARATA Mizuki
+** Copyright (C) 2009-2010 ARATA Mizuki
 ** See file COPYRIGHT for more information
 */
 
@@ -77,24 +77,23 @@ void lobjc_conv_luatoobjc1 (lua_State *L, int n, const char *e, void *buffer) {
           size_t retlen;
           const char *s = lua_tolstring(L, -1, &retlen);
           if (size != retlen) {
-            luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned wrong size of string", n);
+            luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned a string of wrong size", n);
           }
           memcpy(buffer, s, size);
         } else if (lua_isuserdata(L, -1)) {
           size_t retlen = lua_objlen(L, -1);
           if (size != retlen) {
-            luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned wrong size of userdata", n);
+            luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned an userdata of wrong size", n);
           }
           void *p = lua_touserdata(L, -1);
           memcpy(buffer, p, size);
         } else {
-          luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned non-string", n);
+          luaL_error(L, "lua->objc: #%d '__toobjc' metamethod returned a non-string", n);
         }
         lua_pop(L, 1);
       } else {
-        luaL_error(L, "lua->objc: cannot convert to Objective-C struct");
+        luaL_error(L, "lua->objc: cannot convert value to an Objective-C struct");
       }
-      // TODO: consider alignment and padding
       break;
     }
   case '(': luaL_error(L, "lua->objc: union not supported"); break;

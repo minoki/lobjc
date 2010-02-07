@@ -1,3 +1,6 @@
+-- Copyright (C) 2009-2010 ARATA Mizuki
+-- See file COPYRIGHT for more information
+
 local _G = _G
 local type,tonumber,assert,error,pcall = type,tonumber,assert,error,pcall
 local pairs,ipairs,rawset,select,unpack  = pairs,ipairs,rawset,select,unpack
