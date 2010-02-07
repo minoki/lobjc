@@ -179,3 +179,4 @@ do
 end
 
 
+require "objc.struct"

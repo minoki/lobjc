@@ -161,9 +161,48 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
       size_t name_len;
       e = skip_tagname(e, &name_len);
 
-      lua_createtable(L, 0, 1);
-      lua_pushlstring(L, name, name_len);
-      lua_setfield(L, -2, "__name");
+      lua_newtable(L);
+      if (*name != '?') {
+        lua_pushlstring(L, name, name_len); // push tagname
+
+        lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:struct_registry");
+        lua_pushvalue(L, -2); // tagname
+        lua_rawget(L, -2);
+        if (lua_isnil(L, -1)) {
+          lua_pop(L, 1);
+          lua_newtable(L);
+          unsigned int count = 0;
+          const char *p = e;
+          while (*p != '}') {
+            ++count;
+            p = skip_type(L, p);
+          }
+          lua_pushlstring(L, name-1, p+1-(name-1)); // type encoding
+          lua_setfield(L, -2, ":typeencoding:");
+          lua_pushinteger(L, count);
+          lua_setfield(L, -2, ":count:");
+          lua_pushvalue(L, -3); // tagname
+          lua_pushvalue(L, -2); // newly created table
+          lua_rawset(L, -4);
+        }
+        lua_remove(L, -2); // remove struct_registry
+        lua_setfield(L, -3, ":struct_info:");
+
+        lua_setfield(L, -2, ":tagname:");
+      } else {
+        lua_newtable(L);
+        unsigned int count = 0;
+        const char *p = e;
+        while (*p != '}') {
+          ++count;
+          p = skip_type(L, p);
+        }
+        lua_pushlstring(L, name-1, p+1-(name-1)); // type encoding
+        lua_setfield(L, -2, ":typeencoding:");
+        lua_pushinteger(L, count);
+        lua_setfield(L, -2, ":count:");
+        lua_setfield(L, -2, ":struct_info:");
+      }
 
       int n = 1;
       size_t pos = 0;
@@ -178,7 +217,6 @@ static void objctolua1_impl (lua_State *L, const char *e, void *buffer, bool ret
       lua_setmetatable(L, -2);
       break;
     }
-    // TODO: なんかラップする
   case '(': luaL_error(L, "objc->lua: union not supported"); break;
   case 'b': luaL_error(L, "objc->lua: bitfield not supported"); break;
   case '^': {

@@ -12,33 +12,11 @@
 #include <string.h>
 
 static const char tname_struct[] = "lobjc:struct";
+static const char struct_registry_key[] = "lobjc:struct_registry";
 
 static inline size_t round_align(size_t n, size_t align) {
   return ((n+align-1)/align)*align;
 }
-
-/*
-function newstruct(tagname,...)
-  return setmetatable({__tagname=tagname,...},struct_meta)
-end
-*/
-static int lobjc_struct_new (lua_State *L) { /** new(tagname,...) */
-  if (!lua_isnil(L, 1)) {
-    luaL_checkstring(L, 1);
-  }
-  int c = lua_gettop(L)-1;
-  lua_createtable(L, c, 1);
-  lua_pushvalue(L, 1);
-  lua_setfield(L, -2, "__tagname");
-  for (int i = 1; i <= c; ++i) {
-    lua_pushvalue(L, i+1);
-    lua_rawseti(L, -2, i);
-  }
-  luaL_getmetatable(L, tname_struct);
-  lua_setmetatable(L, -2);
-  return 1;
-}
-
 
 static int struct_toobjc (lua_State *L) { /** __toobjc(self,type) */
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -52,7 +30,7 @@ static int struct_toobjc (lua_State *L) { /** __toobjc(self,type) */
 
   // check if 'type' has a tag
   if (*++e != '?') {
-    lua_getfield(L, 1, "__tagname");
+    lua_getfield(L, 1, ":tagname:");
     size_t name2_len;
     const char *name2 = lua_tolstring(L, -1, &name2_len);
     if(name2 && (name2_len != sep-e || strncmp(e, name2, sep-e) != 0)) {
@@ -83,15 +61,20 @@ static const luaL_Reg structfuncs[] = {
 };
 
 static const luaL_Reg funcs[] = {
-  {"new", lobjc_struct_new},
   {NULL, NULL}
 };
 
 LUALIB_API int luaopen_objc_runtime_struct (lua_State *L) {
+  luaL_register(L, "objc.runtime", funcs);
+
+  lua_newtable(L);
+  lua_pushvalue(L, -1);
+  lua_setfield(L, LUA_REGISTRYINDEX, struct_registry_key);
+  lua_setfield(L, -2, "__struct_registry");
+
   luaL_newmetatable(L, tname_struct);
   luaL_register(L, NULL, structfuncs);
-
-  luaL_register(L, "objc.runtime.struct", funcs);
+  lua_setfield(L, -2, "__struct_metatable");
   return 1;
 }
 

@@ -82,5 +82,5 @@ NSData_to_string = runtime.NSData_to_string
 
 
 setmetatable(_M,{__index = function(t,k)
-  return classes[k] or objc.constants[k] or objc.functions[k]
+  return classes[k] or objc.constants[k] or objc.functions[k] or objc.structures[k]
 end})

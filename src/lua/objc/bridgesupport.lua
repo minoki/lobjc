@@ -10,8 +10,10 @@ local runtime = require "objc.runtime"
 local ffi     = require "objc.runtime.ffi"
 local runtime_bridgesupport = require "objc.runtime.bridgesupport"
 local typeencoding = require "objc.typeencoding"
+local debug = require "debug"
 module "objc.bridgesupport"
 local skipqualifier,skiptype = typeencoding.skipqualifier,typeencoding.skiptype
+local struct_registry = runtime.__struct_registry
 
 local function DEBUG_print(...)
   local e = os.getenv "LOBJC_DEBUG" or ""
@@ -73,9 +75,37 @@ local function loadBS(b,bspath,bsinline)
     local type = choose64(e.type,e.type64)
     local opaque = tobool(e.opaque,false)
     if not opaque then
-      local tagname = string.match(type,"^{([^=])+=")
-      objc.structures[name] = function(...)
-        return objc.runtime.struct.new(tagname,...)
+      local tagname,p = string.match(type,"^{([^=]+)=(.*)}$")
+      local struct_info
+      if tagname == "?" then
+        tagname = nil
+        struct_info = {}
+      DEBUG_print("BridgeSupport: <struct>: anonymous "..name.." "..type)
+      else
+        struct_info = struct_info or struct_registry[tagname]
+        if struct_info == nil then
+          struct_info = {}
+          struct_registry[tagname] = struct_info
+        end
+      end
+      local count = 0
+      while p ~= "" do
+        count = count+1
+        if string.match(p,'^".-"') then
+          local fieldname
+          fieldname,p = string.match(p,'^"(.-)"(.*)')
+          assert(not struct_info[count] or struct_info[count] == fieldname)
+          assert(not struct_info[fieldname] or struct_info[fieldname] == count)
+          struct_info[count] = fieldname
+          struct_info[fieldname] = count
+        end
+        p = skiptype(p)
+      end
+      assert(not struct_info[":count:"] or struct_info[":count:"] == count)
+      struct_info[":count:"] = count
+      struct_info[":typeencoding:"] = type
+      objc.structures[name] = function(fields)
+        return objc.struct.new(tagname,fields,struct_info)
       end
     else
 --      DEBUG_print("BridgeSupport: <struct>: opaque "..name.." "..type)
