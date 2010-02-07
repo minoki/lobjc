@@ -180,3 +180,4 @@ end
 
 
 require "objc.struct"
+require "objc.classbuilder"
