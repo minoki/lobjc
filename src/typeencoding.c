@@ -53,7 +53,7 @@ unsigned char get_qualifier (const char *e) {
 const char *skip_type (lua_State *L, const char *e) {
   if (*e == '"') {
     // skip variable name
-    while(*++e ~= '"');
+    while(*++e != '"');
     ++e;
   }
   e = skip_qualifier(e);
@@ -77,8 +77,9 @@ const char *skip_type (lua_State *L, const char *e) {
   } else if (c == '(') { // a union
     while (*e != '=' && *e != ')') ++e;
     if (*e++ == '=') {
-      do e = skip_type(L, e); // there should not be a empty union
-      while (*e++ != ')');
+      while (*e++ != ')') {
+        e = skip_type(L, e);
+      }
     }
   } else if (c == 'b') { // a bitfield
     while (isdigit(*e)) ++e;
