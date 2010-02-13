@@ -15,6 +15,8 @@
 #include <objc/runtime.h>
 
 #define objc_copyProtocolList(outCount) ((*(outCount)=0),NULL)
+#define protocol_getMethodDescription(protocol,sel,isRequiredMethod,isInstanceMethod) \
+  ((void)protocol,(void)sel,(void)isRequiredMethod,(void)isInstanceMethod,(struct objc_method_description){NULL,NULL})
 
 #elif defined(GNU_RUNTIME) && defined(HAS_OBJC2_FRAMEWORK)
 
@@ -22,6 +24,8 @@
 
 // As of Etoile's rev. 5670, this does't seem to be implemented..
 #define objc_copyProtocolList(outCount) ((*(outCount)=0),NULL)
+#define protocol_getMethodDescription(protocol,sel,isRequiredMethod,isInstanceMethod) \
+  ((void)protocol,(void)sel,(void)isRequiredMethod,(void)isInstanceMethod,(struct objc_method_description){NULL,NULL})
 
 #elif defined(GNU_RUNTIME)
 
