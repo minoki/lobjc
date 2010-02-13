@@ -165,6 +165,8 @@ do
   Method_meta.getName = runtime.method_getName
   Method_meta.getNumberOfArguments = runtime.method_getNumberOfArguments
   Method_meta.getTypeEncoding = runtime.method_getTypeEncoding
+  Method_meta.getReturnType = runtime.method_getReturnType
+  Method_meta.getArgumentType = runtime.method_getArgumentType
   function Method_meta:__tostring()
     return string.format("Method '%s' <%s>", self:getName(), self:getTypeEncoding())
   end

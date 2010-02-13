@@ -251,6 +251,12 @@ static int copyPropertyList_aux (lua_State *L) {
 }
 #endif
 
+static int copystring_aux (lua_State *L) {
+  char *s = *(char **)lua_touserdata(L, 1);
+  lua_pushstring(L, s);
+  return 1;
+}
+
 
 static int lobjc_objc_lookUpClass (lua_State *L) {  /** objc_lookUpClass(name) */
   lobjc_pushclass(L, objc_lookUpClass(luaL_checkstring(L, 1)));
@@ -504,6 +510,29 @@ static int lobjc_method_getTypeEncoding (lua_State *L) { /** method_getTypeEncod
   Method method = lobjc_toMethod(L, 1);
   lua_pushstring(L, method_getTypeEncoding(method));
   return 1;
+}
+
+static int lobjc_method_getReturnType (lua_State *L) { /** method_getReturnType(method) */
+  Method method = lobjc_toMethod(L, 1);
+  char *type = NULL;
+  lua_pushcfunction(L, copystring_aux);
+  lua_pushlightuserdata(L, &type);
+  type = method_copyReturnType(method);
+  int err = lua_pcall(L, 1, 1, 0);
+  free(type);
+  return err == 0 ? 1 : lua_error(L);
+}
+
+static int lobjc_method_getArgumentType (lua_State *L) { /** method_getArgumentType(method,index) */
+  Method method = lobjc_toMethod(L, 1);
+  unsigned int index = (unsigned int)lua_tointeger(L, 2);
+  char *type = NULL;
+  lua_pushcfunction(L, copystring_aux);
+  lua_pushlightuserdata(L, &type);
+  type = method_copyArgumentType(method, index);
+  int err = lua_pcall(L, 1, 1, 0);
+  free(type);
+  return err == 0 ? 1 : lua_error(L);
 }
 
 static int lobjc_method_exchangeImplementations (lua_State *L) { /** method_exchangeImplementations(m1,m2) */
@@ -830,6 +859,8 @@ static const luaL_Reg funcs[] = {
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},
+  {"method_getReturnType",        lobjc_method_getReturnType},
+  {"method_getArgumentType",      lobjc_method_getArgumentType},
   {"method_exchangeImplementations", lobjc_method_exchangeImplementations},
   {"ivar_getName",                lobjc_ivar_getName},
   {"ivar_getTypeEncoding",        lobjc_ivar_getTypeEncoding},
