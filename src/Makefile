@@ -27,7 +27,6 @@ LIBS+= $(shell pkg-config --libs libffi)
 
 CFLAGS+= -std=c99 -DLUA_LIB -Wall -g -fPIC $(MYCFLAGS)
 OBJCFLAGS+= -fobjc-exceptions $(MYOBJCFLAGS)
-# -fobjc-gc -D"id=__strong id"
 LIBS+= $(MYLIBS)
 BUILD_DIR= build-$(shell uname -m)-$(shell uname -s)
 SOURCES= \
@@ -37,7 +36,6 @@ SOURCES= \
   lobjc_exception.m \
   lobjc_bridgesupport.m \
   lobjc_luawrapper.m \
-  simplecheck.m \
   lobjc-compat.m \
   lobjc_struct.c \
   lobjc_pointer.c \
@@ -54,7 +52,6 @@ all: $(SO)
 echo:
 	@echo "sources: $(SOURCES)"
 	@echo "objs: $(OBJS)"
-	@echo "cobjs: $(COBJS)"
 
 $(BUILD_DIR):
 	mkdir $@
@@ -71,9 +68,6 @@ $(C_OBJS): $(BUILD_DIR)/%.o: %.c $(BUILD_DIR)
 clean:
 	rm -f $(OBJS)
 	rm -f $(SO)
-
-test: tests/test.m $(OBJS)
-	$(CC) -o $@ $(CFLAGS) -I. $^ -llua -lobjc $(LIBS)
 
 depend:
 	$(CC) -MM $(CFLAGS) *.m *.c > depend.mak

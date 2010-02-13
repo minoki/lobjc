@@ -17,8 +17,6 @@
 #import <assert.h>
 #import <math.h>
 
-extern int run_simple_test (lua_State *L);
-
 static const char tname_id[] = "objc:id";
 static const char tname_Method[] = "objc:Method";
 static const char tname_Ivar[] = "objc:Ivar";
@@ -916,8 +914,6 @@ static void setplatforminfo (lua_State *L) {
 }
 
 LUALIB_API int luaopen_objc_runtime (lua_State *L) {
-  assert(run_simple_test(L));
-
   initcache(L, "lobjc:id_cache", "v");
   initcache(L, "lobjc:Method_cache", "v");
   initcache(L, "lobjc:Ivar_cache", "v");
