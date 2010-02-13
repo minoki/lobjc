@@ -4,8 +4,10 @@
 local setmetatable = setmetatable
 local pairs,ipairs = pairs,ipairs
 local table = require "table"
+local package = require "package"
 local objc = require "objc"
 local runtime = require "objc.runtime"
+require "cocoa.basicdefinition"
 module "cocoa"
 
 local classes = objc.classes
@@ -87,3 +89,9 @@ NSData_to_string = runtime.NSData_to_string
 setmetatable(_M,{__index = function(t,k)
   return classes[k] or objc.constants[k] or objc.functions[k] or objc.structures[k]
 end})
+
+
+if runtime._GNUSTEP then
+  package.loaded["cocoa:AppKit"] = true
+end
+

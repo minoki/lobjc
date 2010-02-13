@@ -20,13 +20,17 @@ TO_LMOD_objc= \
  lua/objc/typeencoding.lua \
  lua/objc/bridgesupport.lua \
  lua/objc/struct.lua \
- lua/objc/classbuilder.lua
+ lua/objc/classbuilder.lua \
+ lua/objc/types.lua
+TO_LMOD_cocoa= \
+  lua/cocoa/basicdefinition.lua
 
 install:
-	cd src && $(MKDIR) $(INSTALL_LMOD) $(INSTALL_CMOD) $(INSTALL_LMOD)/objc
+	cd src && $(MKDIR) $(INSTALL_LMOD) $(INSTALL_CMOD) $(INSTALL_LMOD)/objc $(INSTALL_LMOD)/cocoa
 	cd src && $(INSTALL_EXEC) $(TO_CMOD) $(INSTALL_CMOD)
 	cd src && $(INSTALL_DATA) $(TO_LMOD) $(INSTALL_LMOD)
 	cd src && $(INSTALL_DATA) $(TO_LMOD_objc) $(INSTALL_LMOD)/objc
+	cd src && $(INSTALL_DATA) $(TO_LMOD_cocoa) $(INSTALL_LMOD)/cocoa
 
 local:
 	$(MAKE) install INSTALL_TOP=..
