@@ -4,6 +4,7 @@
 */
 
 #import "lobjc.h"
+#import "lobjc_runtimetypes.h"
 #import "lobjc_invoke.h"
 #import "lobjc_convert.h"
 #import "typeencoding.h"
@@ -17,121 +18,12 @@
 #import <assert.h>
 #import <math.h>
 
-static const char tname_id[] = "objc:id";
-static const char tname_Method[] = "objc:Method";
-static const char tname_Ivar[] = "objc:Ivar";
-#if !defined(DISABLE_OBJC2_PROPERTIES)
-static const char tname_property[] = "objc:objc_property_t";
-#endif
-
-void lobjc_pushselector (lua_State *L, SEL sel) {
-  lua_pushstring(L, sel_getName(sel));
-}
-SEL lobjc_checkselector (lua_State *L, int n) {
-  return sel_registerName(luaL_checkstring(L, n));
-}
-void lobjc_pushclass (lua_State *L, Class cls) {
-  lobjc_pushid(L, cls);
-}
-Class lobjc_toclass (lua_State *L, int idx) {
-  id o = lobjc_toid(L, idx);
-  return class_isMetaClass(object_getClass(o)) ? (Class)o : Nil;
-}
-
-static void pushid_impl (lua_State *L, id obj, bool retain, bool try_method) {
-#if defined(GNU_RUNTIME)
-  // In GNU runtime, you die if you send a message to a metaclass
-  bool is_meta_class = class_isMetaClass(obj);
-  try_method = try_method && !is_meta_class;
-  retain = retain && !is_meta_class;
-#endif
-  if (obj == nil) {
-    lua_pushnil(L); // TODO: reconsider this behavior
-  } else if (try_method && [obj respondsToSelector: @selector(lobjc_pushLuaValue:)]
-          && [obj lobjc_pushLuaValue: L]) {
-  } else {
-    lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:id_cache");
-    lua_pushlightuserdata(L, (void *)obj);
-    lua_rawget(L, -2);
-    if (lua_isnil(L, -1)) {
-      lua_pop(L, 1);
-
-      id *ptr = (id*)lua_newuserdata(L, sizeof(id));
-      *ptr = nil;
-
-      luaL_getmetatable(L, tname_id);
-      lua_setmetatable(L, -2);
-
-      // we retain obj AFTER we have set its metatable
-      // (to make sure __gc is called)
-      if (retain) {
-        [obj retain];
-      }
-      *ptr = obj;
-
-      lua_pushlightuserdata(L, (void *)obj);
-      lua_pushvalue(L, -2);
-      lua_settable(L, -4);
-    }
-    lua_remove(L, -2); // remove cache table
-  }
-}
-LUALIB_API void lobjc_pushid (lua_State *L, id obj) {
-  pushid_impl(L, obj, true, true);
-}
-
-LUALIB_API void lobjc_pushid_noretain (lua_State *L, id obj) {
-  pushid_impl(L, obj, false, true);
-}
-
-LUALIB_API void lobjc_rawpushid (lua_State *L, id obj) {
-  pushid_impl(L, obj, true, false);
-}
-
-
-LUALIB_API id lobjc_toid (lua_State *L, int idx) {
-  if (lua_isuserdata(L, idx)) { // TODO: try metamethod
-    lua_getmetatable(L, idx);
-    luaL_getmetatable(L, tname_id);
-    if (lua_rawequal(L, -1, -2)) {
-      lua_pop(L, 2);
-      return *(id*)lua_touserdata(L, idx);
-    }
-    lua_pop(L, 2);
-  } else if (lua_isnumber(L, idx)) {
-    return [[[lobjc_LuaNumberProxy alloc] initWithLuaNumber: lua_tonumber(L, idx)] autorelease];
-  } else if (lua_isstring(L, idx)) {
-    size_t len = 0;
-    const char *str = lua_tolstring(L, idx, &len);
-    return [[[lobjc_LuaStringProxy alloc] initWithLuaString: str length: len] autorelease];
-  } else if (lua_isboolean(L, idx)) {
-    return [[[lobjc_LuaBooleanProxy alloc] initWithBool: lua_toboolean(L, idx)] autorelease];
-  } else if (lua_isnoneornil(L, idx)) {
-    return nil;
-  }
-  lua_pushvalue(L, idx);
-  return [[[lobjc_LuaValueWrapper alloc] initWithLuaState: L] autorelease];
-}
-
-LUALIB_API id lobjc_rawtoid (lua_State *L, int idx) {
-  if (lua_isuserdata(L, idx)) {
-    lua_getmetatable(L, idx);
-    luaL_getmetatable(L, tname_id);
-    if (lua_rawequal(L, -1, -2)) {
-      lua_pop(L, 2);
-      return *(id*)lua_touserdata(L, idx);
-    }
-    lua_pop(L, 2);
-  }
-  return nil;
-}
-
 
 static int id_gc (lua_State *L) {
   id *p = (id *)lua_touserdata(L, 1);
   if (*p != nil) {
 #if defined(GNU_RUNTIME)
-    // In GNU runtime, you die if you send a message to a metaclass
+    // With GNU runtime, you die if you send a message to a metaclass
     bool is_meta_class = class_isMetaClass(*p);
     if (!is_meta_class)
 #endif
@@ -148,42 +40,6 @@ static const luaL_Reg idfuncs[] = {
   {NULL, NULL}
 };
 
-
-static bool lobjc_pushptr (lua_State *L, void *obj, const char *tname, const char *cache) {
-  if (obj == nil) {
-    lua_pushnil(L);
-  } else {
-    lua_getfield(L, LUA_REGISTRYINDEX, cache);
-    lua_pushlightuserdata(L, obj);
-    lua_rawget(L, -2);
-    if (lua_isnil(L, -1)) {
-      lua_pop(L, 1);
-
-      *(void**)lua_newuserdata(L, sizeof(void *)) = obj;
-
-      luaL_getmetatable(L, tname);
-      lua_setmetatable(L, -2);
-
-      lua_pushlightuserdata(L, obj);
-      lua_pushvalue(L, -2);
-      lua_settable(L, -4);
-      lua_remove(L, -2); // remove cache table
-      return true;
-    }
-    lua_remove(L, -2); // remove cache table
-  }
-  return false;
-}
-#define lobjc_pushIvar(L,p) lobjc_pushptr(L, p, tname_Ivar, "lobjc:Ivar_cache")
-#define lobjc_toIvar(L,narg) (*(Ivar *)luaL_checkudata(L, narg, tname_Ivar))
-#define lobjc_pushMethod(L,p) lobjc_pushptr(L, p, tname_Method, "lobjc:Method_cache")
-#define lobjc_toMethod(L,narg) (*(Method *)luaL_checkudata(L, narg, tname_Method))
-#if !defined(DISABLE_OBJC2_PROPERTIES)
-#define lobjc_pushproperty(L,p) lobjc_pushptr(L, p, tname_property, "lobjc:property_cache")
-#define lobjc_toproperty(L,narg) (*(objc_property_t *)luaL_checkudata(L, narg, tname_property))
-#endif
-#define lobjc_pushProtocol(L,p) lobjc_pushid(L, p)
-#define lobjc_toProtocol(L,p) lobjc_toid(L, p)
 
 struct copyXXXList_aux_params {
   unsigned int count;
@@ -394,14 +250,14 @@ static int lobjc_class_respondsToSelector (lua_State *L) { /** class_respondsToS
 
 static int lobjc_class_addProtocol (lua_State *L) { /** class_addProtocol(cls,protocol) */
   Class cls = lobjc_toclass(L, 1);
-  Protocol *protocol = lobjc_toProtocol(L, 2);
+  Protocol *protocol = lobjc_checkProtocol(L, 2);
   lua_pushboolean(L, class_addProtocol(cls, protocol));
   return 1;
 }
 
 static int lobjc_class_conformsToProtocol (lua_State *L) { /** class_conformsToProtocol(cls,protocol) */
   Class cls = lobjc_toclass(L, 1);
-  Protocol *protocol = lobjc_toProtocol(L, 2);
+  Protocol *protocol = lobjc_checkProtocol(L, 2);
   lua_pushboolean(L, class_conformsToProtocol(cls, protocol));
   return 1;
 }
@@ -495,25 +351,25 @@ static int lobjc_class_copyPropertyList (lua_State *L) { /** class_copyPropertyL
 #endif
 
 static int lobjc_method_getName (lua_State *L) { /** method_getName(method) */
-  Method method = lobjc_toMethod(L, 1);
+  Method method = lobjc_checkMethod(L, 1);
   lobjc_pushselector(L, method_getName(method));
   return 1;
 }
 
 static int lobjc_method_getNumberOfArguments (lua_State *L) { /** method_getNumberOfArguments(method) */
-  Method method = lobjc_toMethod(L, 1);
+  Method method = lobjc_checkMethod(L, 1);
   lua_pushinteger(L, method_getNumberOfArguments(method));
   return 1;
 }
 
 static int lobjc_method_getTypeEncoding (lua_State *L) { /** method_getTypeEncoding(method) */
-  Method method = lobjc_toMethod(L, 1);
+  Method method = lobjc_checkMethod(L, 1);
   lua_pushstring(L, method_getTypeEncoding(method));
   return 1;
 }
 
 static int lobjc_method_getReturnType (lua_State *L) { /** method_getReturnType(method) */
-  Method method = lobjc_toMethod(L, 1);
+  Method method = lobjc_checkMethod(L, 1);
   char *type = NULL;
   lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &type);
@@ -524,7 +380,7 @@ static int lobjc_method_getReturnType (lua_State *L) { /** method_getReturnType(
 }
 
 static int lobjc_method_getArgumentType (lua_State *L) { /** method_getArgumentType(method,index) */
-  Method method = lobjc_toMethod(L, 1);
+  Method method = lobjc_checkMethod(L, 1);
   unsigned int index = (unsigned int)lua_tointeger(L, 2);
   char *type = NULL;
   lua_pushvalue(L, lua_upvalueindex(1));
@@ -536,41 +392,41 @@ static int lobjc_method_getArgumentType (lua_State *L) { /** method_getArgumentT
 }
 
 static int lobjc_method_exchangeImplementations (lua_State *L) { /** method_exchangeImplementations(m1,m2) */
-  Method m1 = lobjc_toMethod(L, 1);
-  Method m2 = lobjc_toMethod(L, 2);
+  Method m1 = lobjc_checkMethod(L, 1);
+  Method m2 = lobjc_checkMethod(L, 2);
   method_exchangeImplementations(m1, m2);
   return 0;
 }
 
 static int lobjc_ivar_getName (lua_State *L) { /** ivar_getName(ivar) */
-  lua_pushstring(L, ivar_getName(lobjc_toIvar(L, 1)));
+  lua_pushstring(L, ivar_getName(lobjc_checkIvar(L, 1)));
   return 1;
 }
 
 static int lobjc_ivar_getTypeEncoding (lua_State *L) { /** ivar_getTypeEncoding(ivar) */
-  lua_pushstring(L, ivar_getTypeEncoding(lobjc_toIvar(L, 1)));
+  lua_pushstring(L, ivar_getTypeEncoding(lobjc_checkIvar(L, 1)));
   return 1;
 }
 
 static int lobjc_ivar_getOffset (lua_State *L) { /** ivar_getOffset(ivar) */
-  lua_pushinteger(L, ivar_getOffset(lobjc_toIvar(L, 1)));
+  lua_pushinteger(L, ivar_getOffset(lobjc_checkIvar(L, 1)));
   return 1;
 }
 
 static int lobjc_protocol_getName (lua_State *L) { /** protocol_getName(protocol) */
-  lua_pushstring(L, protocol_getName(lobjc_toProtocol(L, 1)));
+  lua_pushstring(L, protocol_getName(lobjc_checkProtocol(L, 1)));
   return 1;
 }
 
 static int lobjc_protocol_isEqual (lua_State *L) { /** protocol_isEqual(a,b) */
-  Protocol *a = lobjc_toProtocol(L, 1);
-  Protocol *b = lobjc_toProtocol(L, 2);
+  Protocol *a = lobjc_checkProtocol(L, 1);
+  Protocol *b = lobjc_checkProtocol(L, 2);
   lua_pushboolean(L, protocol_isEqual(a, b));
   return 1;
 }
 
 static int lobjc_protocol_copyMethodDescriptionList (lua_State *L) { /** protocol_copyMethodDescriptionList(protocol,isRequiredMethod,isInstanceMethod) */
-  Protocol *protocol = lobjc_toProtocol(L, 1);
+  Protocol *protocol = lobjc_checkProtocol(L, 1);
   BOOL isRequiredMethod = lua_toboolean(L, 2);
   BOOL isInstanceMethod = lua_toboolean(L, 3);
   struct copyXXXList_aux_params params = {0, NULL};
@@ -587,7 +443,7 @@ static int lobjc_protocol_copyMethodDescriptionList (lua_State *L) { /** protoco
 }
 
 static int lobjc_protocol_getMethodDescription (lua_State *L) { /** protocol_getMethodDescription(protocol,sel,isRequiredMethod,isInstanceMethod) */
-  Protocol *protocol = lobjc_toProtocol(L, 1);
+  Protocol *protocol = lobjc_checkProtocol(L, 1);
   SEL sel = lobjc_checkselector(L, 2);
   BOOL isRequiredMethod = lua_toboolean(L, 3);
   BOOL isInstanceMethod = lua_toboolean(L, 4);
@@ -606,7 +462,7 @@ static int lobjc_protocol_getMethodDescription (lua_State *L) { /** protocol_get
 
 #if !defined(DISABLE_OBJC2_PROPERTIES)
 static int lobjc_protocol_copyPropertyList (lua_State *L) { /** protocol_copyPropertyList(protocol) */
-  Protocol *protocol = lobjc_toid(L, 1);
+  Protocol *protocol = lobjc_checkProtocol(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
   lua_pushvalue(L, lua_upvalueindex(1));
@@ -621,7 +477,7 @@ static int lobjc_protocol_copyPropertyList (lua_State *L) { /** protocol_copyPro
 }
 
 static int lobjc_protocol_getProperty (lua_State *L) { /** protocol_getProperty(protocol,name,isRequiredProperty,isInstanceProperty) */
-  Protocol *protocol = lobjc_toid(L, 1);
+  Protocol *protocol = lobjc_checkProtocol(L, 1);
   const char *name = luaL_checkstring(L, 2);
   BOOL isRequiredProperty = lua_toboolean(L, 3);
   BOOL isInstanceProperty = lua_toboolean(L, 4);
@@ -631,7 +487,7 @@ static int lobjc_protocol_getProperty (lua_State *L) { /** protocol_getProperty(
 #endif
 
 static int lobjc_protocol_copyProtocolList (lua_State *L) { /** protocol_copyProtocolList(cls) */
-  Protocol *protocol = lobjc_toProtocol(L, 1);
+  Protocol *protocol = lobjc_checkProtocol(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
   lua_pushvalue(L, lua_upvalueindex(1));
@@ -646,20 +502,20 @@ static int lobjc_protocol_copyProtocolList (lua_State *L) { /** protocol_copyPro
 }
 
 static int lobjc_protocol_conformsToProtocol (lua_State *L) { /** protocol_conformsToProtocol(a,b) */
-  Protocol *a = lobjc_toProtocol(L, 1);
-  Protocol *b = lobjc_toProtocol(L, 2);
+  Protocol *a = lobjc_checkProtocol(L, 1);
+  Protocol *b = lobjc_checkProtocol(L, 2);
   lua_pushboolean(L, protocol_conformsToProtocol(a, b));
   return 1;
 }
 
 #if !defined(DISABLE_OBJC2_PROPERTIES)
 static int lobjc_property_getName (lua_State *L) { /** property_getName(prop) */
-  lua_pushstring(L, property_getName(lobjc_toproperty(L, 1)));
+  lua_pushstring(L, property_getName(lobjc_checkproperty(L, 1)));
   return 1;
 }
 
 static int lobjc_property_getAttributes (lua_State *L) { /** property_getAttributes(prop) */
-  lua_pushstring(L, property_getAttributes(lobjc_toproperty(L, 1)));
+  lua_pushstring(L, property_getAttributes(lobjc_checkproperty(L, 1)));
   return 1;
 }
 #endif
@@ -751,7 +607,7 @@ static int lobjc_gettypeencoding_x (lua_State *L) { /** gettypeencoding_x(obj,se
 }
 
 static int lobjc_overridesignature (lua_State *L) { /** overridesignature(method,sig) */
-  Method method = lobjc_toMethod(L, 1);
+  Method method = lobjc_checkMethod(L, 1);
   luaL_checkstring(L, 2);
   lua_getfield(L, LUA_REGISTRYINDEX, "lobjc:methodsig_override");
   lua_pushlightuserdata(L, (void *)method);
@@ -971,23 +827,15 @@ static void setplatforminfo (lua_State *L) {
 }
 
 LUALIB_API int luaopen_objc_runtime (lua_State *L) {
-  initcache(L, "lobjc:id_cache", "v");
-  initcache(L, "lobjc:Method_cache", "v");
-  initcache(L, "lobjc:Ivar_cache", "v");
-#if !defined(DISABLE_OBJC2_PROPERTIES)
-  initcache(L, "lobjc:property_cache", "v");
-#endif
   initcache(L, "lobjc:wrapper_cache", "kv");
   initcache(L, "lobjc:wrapperinfo", "k");
 
-  luaL_newmetatable(L, tname_id);
-  luaL_register(L, NULL, idfuncs);
+  lua_pushcfunction(L, luaopen_objc_runtime_types);
+  lua_call(L, 0, 0);
 
-  luaL_newmetatable(L, tname_Method);
-  luaL_newmetatable(L, tname_Ivar);
-#if !defined(DISABLE_OBJC2_PROPERTIES)
-  luaL_newmetatable(L, tname_property);
-#endif
+  luaL_getmetatable(L, tname_id);
+  luaL_register(L, NULL, idfuncs);
+  lua_pop(L, 1);
 
   setupautoreleasepool(L); // this must be called after luaL_newmetatable(...)
 
@@ -1015,20 +863,6 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   auxopen(L, "method_getReturnType", lobjc_method_getReturnType, NULL);
   auxopen(L, "method_getArgumentType", lobjc_method_getArgumentType, NULL);
   lua_pop(L, 1);
-
-  luaL_getmetatable(L, tname_id);
-  lua_setfield(L, -2, "__id_metatable");
-
-  luaL_getmetatable(L, tname_Method);
-  lua_setfield(L, -2, "__Method_metatable");
-
-  luaL_getmetatable(L, tname_Ivar);
-  lua_setfield(L, -2, "__Ivar_metatable");
-
-#if !defined(DISABLE_OBJC2_PROPERTIES)
-  luaL_getmetatable(L, tname_property);
-  lua_setfield(L, -2, "__property_metatable");
-#endif
 
   setplatforminfo(L);
 

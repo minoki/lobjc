@@ -31,6 +31,7 @@ LIBS+= $(MYLIBS)
 BUILD_DIR= build-$(shell uname -m)-$(shell uname -s)
 SOURCES= \
   lobjcrt.m \
+  lobjc_runtimetypes.m \
   lobjc_invoke.m \
   lobjc_convert.m \
   lobjc_exception.m \
