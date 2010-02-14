@@ -410,7 +410,7 @@ static int lobjc_class_copyIvarList (lua_State *L) { /** class_copyIvarList(cls)
   Class cls = lobjc_toclass(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyIvarList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   Ivar *ivars = class_copyIvarList(cls, &params.count);
@@ -425,7 +425,7 @@ static int lobjc_class_copyMethodList (lua_State *L) { /** class_copyMethodList(
   Class cls = lobjc_toclass(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyMethodList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   Method *methods = class_copyMethodList(cls, &params.count);
@@ -440,7 +440,7 @@ static int lobjc_class_copyProtocolList (lua_State *L) { /** class_copyProtocolL
   Class cls = lobjc_toclass(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyProtocolList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   Protocol **protocols = class_copyProtocolList(cls, &params.count);
@@ -454,7 +454,7 @@ static int lobjc_class_copyProtocolList (lua_State *L) { /** class_copyProtocolL
 static int lobjc_objc_copyProtocolList (lua_State *L) { /** objc_copyProtocolList() */
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyProtocolList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   Protocol **protocols = objc_copyProtocolList(&params.count);
@@ -482,7 +482,7 @@ static int lobjc_class_copyPropertyList (lua_State *L) { /** class_copyPropertyL
   Class cls = lobjc_toclass(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyPropertyList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   objc_property_t *props = class_copyPropertyList(cls, &params.count);
@@ -515,7 +515,7 @@ static int lobjc_method_getTypeEncoding (lua_State *L) { /** method_getTypeEncod
 static int lobjc_method_getReturnType (lua_State *L) { /** method_getReturnType(method) */
   Method method = lobjc_toMethod(L, 1);
   char *type = NULL;
-  lua_pushcfunction(L, copystring_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &type);
   type = method_copyReturnType(method);
   int err = lua_pcall(L, 1, 1, 0);
@@ -527,7 +527,7 @@ static int lobjc_method_getArgumentType (lua_State *L) { /** method_getArgumentT
   Method method = lobjc_toMethod(L, 1);
   unsigned int index = (unsigned int)lua_tointeger(L, 2);
   char *type = NULL;
-  lua_pushcfunction(L, copystring_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &type);
   type = method_copyArgumentType(method, index);
   int err = lua_pcall(L, 1, 1, 0);
@@ -575,7 +575,7 @@ static int lobjc_protocol_copyMethodDescriptionList (lua_State *L) { /** protoco
   BOOL isInstanceMethod = lua_toboolean(L, 3);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyMethodDescriptionList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   struct objc_method_description *methods = protocol_copyMethodDescriptionList(protocol, isRequiredMethod, isInstanceMethod, &params.count);
@@ -609,7 +609,7 @@ static int lobjc_protocol_copyPropertyList (lua_State *L) { /** protocol_copyPro
   Protocol *protocol = lobjc_toid(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyPropertyList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   objc_property_t *props = protocol_copyPropertyList(protocol, &params.count);
@@ -634,7 +634,7 @@ static int lobjc_protocol_copyProtocolList (lua_State *L) { /** protocol_copyPro
   Protocol *protocol = lobjc_toProtocol(L, 1);
   struct copyXXXList_aux_params params = {0, NULL};
 
-  lua_pushcfunction(L, copyProtocolList_aux);
+  lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushlightuserdata(L, &params);
 
   Protocol **protocols = protocol_copyProtocolList(protocol, &params.count);
@@ -835,7 +835,6 @@ static const luaL_Reg funcs[] = {
   {"objc_getMetaClass",           lobjc_objc_getMetaClass},
   {"objc_getProtocol",            lobjc_objc_getProtocol},
   {"objc_getClassList",           lobjc_objc_getClassList},
-  {"objc_copyProtocolList",       lobjc_objc_copyProtocolList},
   {"object_getClass",             lobjc_object_getClass},
   {"object_getClassName",         lobjc_object_getClassName},
   {"object_setClass",             lobjc_object_setClass},
@@ -848,37 +847,41 @@ static const luaL_Reg funcs[] = {
   {"class_respondsToSelector",    lobjc_class_respondsToSelector},
   {"class_addProtocol",           lobjc_class_addProtocol},
   {"class_conformsToProtocol",    lobjc_class_conformsToProtocol},
-  {"class_copyIvarList",          lobjc_class_copyIvarList},
-  {"class_copyMethodList",        lobjc_class_copyMethodList},
-  {"class_copyProtocolList",      lobjc_class_copyProtocolList},
   {"class_getInstanceSize",       lobjc_class_getInstanceSize},
 #if !defined(DISABLE_OBJC2_PROPERTIES)
   {"class_getProperty",           lobjc_class_getProperty},
-  {"class_copyPropertyList",      lobjc_class_copyPropertyList},
 #endif
   {"method_getName",              lobjc_method_getName},
   {"method_getNumberOfArguments", lobjc_method_getNumberOfArguments},
   {"method_getTypeEncoding",      lobjc_method_getTypeEncoding},
-  {"method_getReturnType",        lobjc_method_getReturnType},
-  {"method_getArgumentType",      lobjc_method_getArgumentType},
   {"method_exchangeImplementations", lobjc_method_exchangeImplementations},
   {"ivar_getName",                lobjc_ivar_getName},
   {"ivar_getTypeEncoding",        lobjc_ivar_getTypeEncoding},
   {"ivar_getOffset",              lobjc_ivar_getOffset},
   {"protocol_getName",            lobjc_protocol_getName},
   {"protocol_isEqual",            lobjc_protocol_isEqual},
-  {"protocol_copyMethodDescriptionList", lobjc_protocol_copyMethodDescriptionList},
   {"protocol_getMethodDescription", lobjc_protocol_getMethodDescription},
 #if !defined(DISABLE_OBJC2_PROPERTIES)
-  {"protocol_copyPropertyList",   lobjc_protocol_copyPropertyList},
   {"protocol_getProperty",        lobjc_protocol_getProperty},
 #endif
-  {"protocol_copyProtocolList",   lobjc_protocol_copyProtocolList},
   {"protocol_conformsToProtocol", lobjc_protocol_conformsToProtocol},
 #if !defined(DISABLE_OBJC2_PROPERTIES)
   {"property_getName",            lobjc_property_getName},
   {"property_getAttributes",      lobjc_property_getAttributes},
 #endif
+
+/* These functions need auxiliary functions as upvalues
+  {"objc_copyProtocolList",       lobjc_objc_copyProtocolList},
+  {"class_copyIvarList",          lobjc_class_copyIvarList},
+  {"class_copyMethodList",        lobjc_class_copyMethodList},
+  {"class_copyProtocolList",      lobjc_class_copyProtocolList},
+  {"class_copyPropertyList",      lobjc_class_copyPropertyList},
+  {"method_getReturnType",        lobjc_method_getReturnType},
+  {"method_getArgumentType",      lobjc_method_getArgumentType},
+  {"protocol_copyMethodDescriptionList", lobjc_protocol_copyMethodDescriptionList},
+  {"protocol_copyPropertyList",   lobjc_protocol_copyPropertyList},
+  {"protocol_copyProtocolList",   lobjc_protocol_copyProtocolList},
+*/
 
   {"invoke", lobjc_invoke},
   {"invokewithclass", lobjc_invokewithclass},
@@ -917,6 +920,19 @@ static void initcache (lua_State *L, const char *name, const char *mode) {
   lua_pushvalue(L, -1);
   lua_setmetatable(L, -2);
   lua_setfield(L, LUA_REGISTRYINDEX, name);
+}
+
+static void auxopen (lua_State *L, const char *name,
+                     lua_CFunction func, lua_CFunction auxfunc) {
+  if (auxfunc == NULL) {
+    lua_pushvalue(L, -1);
+    lua_pushcclosure(L, func, 1);
+    lua_setfield(L, -3, name);
+  } else {
+    lua_pushcfunction(L, auxfunc);
+    lua_pushcclosure(L, func, 1);
+    lua_setfield(L, -2, name);
+  }
 }
 
 // Prepare NSAutoreleasePool
@@ -979,6 +995,26 @@ LUALIB_API int luaopen_objc_runtime (lua_State *L) {
   lua_setfield(L, LUA_REGISTRYINDEX, "lobjc:methodsig_override");
 
   luaL_register(L, "objc.runtime", funcs);
+  /* These functions need auxiliary functions as upvalues */
+  auxopen(L, "class_copyIvarList", lobjc_class_copyIvarList, copyIvarList_aux);
+  auxopen(L, "class_copyMethodList", lobjc_class_copyMethodList, copyMethodList_aux);
+  lua_pushcfunction(L, copyProtocolList_aux);
+  auxopen(L, "objc_copyProtocolList", lobjc_objc_copyProtocolList, NULL);
+  auxopen(L, "class_copyProtocolList", lobjc_class_copyProtocolList, NULL);
+  auxopen(L, "protocol_copyProtocolList", lobjc_protocol_copyProtocolList, NULL);
+  lua_pop(L, 1);
+#if !defined(DISABLE_OBJC2_PROPERTIES)
+  lua_pushcfunction(L, copyPropertyList_aux);
+  auxopen(L, "class_copyPropertyList", lobjc_class_copyPropertyList, NULL);
+  auxopen(L, "protocol_copyPropertyList", lobjc_protocol_copyPropertyList, NULL);
+  lua_pop(L, 1);
+#endif
+  auxopen(L, "protocol_copyMethodDescriptionList",
+    lobjc_protocol_copyMethodDescriptionList, copyMethodDescriptionList_aux);
+  lua_pushcfunction(L, copystring_aux);
+  auxopen(L, "method_getReturnType", lobjc_method_getReturnType, NULL);
+  auxopen(L, "method_getArgumentType", lobjc_method_getArgumentType, NULL);
+  lua_pop(L, 1);
 
   luaL_getmetatable(L, tname_id);
   lua_setfield(L, -2, "__id_metatable");
