@@ -184,7 +184,7 @@ void lobjc_pushProtocol (lua_State *L, Protocol *p) {
 
 Protocol *lobjc_checkProtocol (lua_State *L, int narg) {
   // TODO: check if the value really is a Protocol
-  id protocol = lobjc_rawtoid(L, idx);
+  id protocol = lobjc_rawtoid(L, narg);
   if (protocol == nil) {
     luaL_typerror(L, narg, "Protocol");
   }
